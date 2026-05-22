@@ -10,6 +10,11 @@ using namespace std;
 
 #define CEIL_DIV(m, n) (((m) + (n) - 1) / (n))
 
+#define BM 64
+#define BN 64
+#define BK 8
+#define TM 8
+
 // TODO C=alpha*A*B+beta*C
 
 // 获取不同架构下每个SM的FP32 CUDA Core数量（辅助推算峰值）
@@ -120,7 +125,7 @@ __global__ void SHARED_MEM_SGEMM(float *A, float *B, float *C, int m, int n, int
     }
 }
 
-__global__ void calculating_more_res_per_thread_1D_SGEMM(float *A, float *B, float *C, int m, int n, int k, int BM, int BN, int BK, int TM)
+__global__ void calculating_more_res_per_thread_1D_SGEMM(float *A, float *B, float *C, int m, int n, int k)
 {
     extern __shared__ float shared_mem[];
     float *tile_A = shared_mem;           // BM*BK
@@ -143,10 +148,9 @@ __global__ void calculating_more_res_per_thread_1D_SGEMM(float *A, float *B, flo
     A += block_row * BM * k; // A 的行偏移
     B += block_col * BN;     // B 的列偏移
 
-    float threadResults[8] = {0.0f};
+    float threadResults[TM] = {0.0f};
     for (int tile_idx = 0; tile_idx < CEIL_DIV(k, BK); tile_idx++)
     {
-        // 将原先的 [a_load_row * BK + a_load_col] 改为 [a_load_col * BM + a_load_row]
         tile_A[a_load_row * BK + a_load_col] = (c_row_start + a_load_row < m && tile_idx * BK + a_load_col < k) ? A[a_load_row * k + a_load_col] : 0.0f;
 
         tile_B[b_load_row * BN + b_load_col] = (block_col * BN + b_load_col < n && tile_idx * BK + b_load_row < k) ? B[b_load_row * n + b_load_col] : 0.0f;
@@ -162,7 +166,6 @@ __global__ void calculating_more_res_per_thread_1D_SGEMM(float *A, float *B, flo
                 for (int j = 0; j < TM; j++)
                 {
                     threadResults[j] += tile_A[(local_row * TM + j) * BK + i] * b_val;
-                    // threadResults[j] += tile_A[i * BM + local_row * TM + j] * b_val;
                 }
             }
         }
@@ -308,15 +311,11 @@ int main()
          << endl;
 
     // 4. 1D Blocktiling for Calculating Multiple Results per Thread v1
-    int BM = 64; // Block size in M dimension
-    int BN = 64; // Block size in N dimension
-    int BK = 8;  // Block size in K dimension
-    int TM = 8;  // Number of M results per thread
 
     blockDim = dim3(BN, BM / TM);
     gridDim = dim3(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     cudaEventRecord(start);
-    calculating_more_res_per_thread_1D_SGEMM<<<gridDim, blockDim, (BM * BK + BK * BN) * sizeof(float)>>>(d_A, d_B, d_C, M, N, K, BM, BN, BK, TM);
+    calculating_more_res_per_thread_1D_SGEMM<<<gridDim, blockDim, (BM * BK + BK * BN) * sizeof(float)>>>(d_A, d_B, d_C, M, N, K);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     latency_ms = 0;
