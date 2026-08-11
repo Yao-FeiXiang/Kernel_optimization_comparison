@@ -23,7 +23,9 @@ int main() {
   std::set<int> ids;
   std::set<std::string> names;
   for (const auto& kernel : kernels) {
+    assert(kernel.prepare != nullptr);
     assert(kernel.launch != nullptr);
+    assert(kernel.cleanup != nullptr);
     assert(!kernel.description.empty());
     ids.insert(kernel.id);
     names.emplace(kernel.name);

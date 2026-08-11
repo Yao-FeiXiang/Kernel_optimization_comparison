@@ -30,17 +30,14 @@ constexpr unsigned int ceil_div(unsigned int value, unsigned int divisor) {
 
 }  // namespace
 
-cudaError_t launch_coalesced(const Problem& problem,
-                             const float* a,
-                             const float* b,
-                             float* c,
-                             cudaStream_t stream) {
+LaunchResult launch_coalesced(const Problem& problem, const DeviceOperands& operands) {
   constexpr unsigned int tile = 32;
   const dim3 block(tile * tile);
   const dim3 grid(ceil_div(static_cast<unsigned int>(problem.n), tile),
                   ceil_div(static_cast<unsigned int>(problem.m), tile));
-  coalesced_kernel<<<grid, block, 0, stream>>>(problem, a, b, c);
-  return cudaGetLastError();
+  coalesced_kernel<<<grid, block, 0, operands.stream>>>(
+      problem, operands.a, operands.b, operands.c);
+  return cuda_launch_result(cudaGetLastError(), "coalesced-scalar");
 }
 
 }  // namespace sgemm

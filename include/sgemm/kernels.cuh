@@ -5,53 +5,50 @@
 #include <cuda_runtime.h>
 
 #include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace sgemm {
 
-using LaunchFn = cudaError_t (*)(const Problem&,
-                                 const float*,
-                                 const float*,
-                                 float*,
-                                 cudaStream_t);
+struct DeviceOperands {
+  const float* a;
+  const float* b;
+  const float* c0;
+  float* c;
+  cudaStream_t stream;
+};
+
+using PrepareFn = PrepareResult (*)(const Problem&, const DeviceOperands&);
+using LaunchFn = LaunchResult (*)(const Problem&, const DeviceOperands&);
+using CleanupFn = void (*)();
 
 struct KernelSpec {
   int id;
   std::string_view name;
   std::string_view description;
+  PrepareFn prepare;
   LaunchFn launch;
+  CleanupFn cleanup;
 };
 
-cudaError_t launch_naive(const Problem& problem,
-                         const float* a,
-                         const float* b,
-                         float* c,
-                         cudaStream_t stream);
+inline LaunchResult cuda_launch_result(cudaError_t status, std::string detail = {}) {
+  if (status == cudaSuccess) {
+    return {true, {}, std::move(detail)};
+  }
+  return {false, cudaGetErrorString(status), std::move(detail)};
+}
 
-cudaError_t launch_coalesced(const Problem& problem,
-                             const float* a,
-                             const float* b,
-                             float* c,
-                             cudaStream_t stream);
+LaunchResult launch_naive(const Problem& problem, const DeviceOperands& operands);
 
-cudaError_t launch_shared(const Problem& problem,
-                          const float* a,
-                          const float* b,
-                          float* c,
-                          cudaStream_t stream);
+LaunchResult launch_coalesced(const Problem& problem, const DeviceOperands& operands);
 
-cudaError_t launch_blocktiling_1d(const Problem& problem,
-                                  const float* a,
-                                  const float* b,
-                                  float* c,
-                                  cudaStream_t stream);
+LaunchResult launch_shared(const Problem& problem, const DeviceOperands& operands);
 
-cudaError_t launch_blocktiling_2d(const Problem& problem,
-                                  const float* a,
-                                  const float* b,
-                                  float* c,
-                                  cudaStream_t stream);
+LaunchResult launch_blocktiling_1d(const Problem& problem, const DeviceOperands& operands);
+
+LaunchResult launch_blocktiling_2d(const Problem& problem, const DeviceOperands& operands);
 
 std::vector<KernelSpec> phase_a_kernels();
 std::optional<KernelSpec> find_kernel(std::string_view selector);

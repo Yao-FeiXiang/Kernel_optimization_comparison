@@ -40,6 +40,18 @@ struct ErrorStats {
   std::size_t worst_index{0};
 };
 
+struct PrepareResult {
+  bool ok{true};
+  std::string configuration;
+  std::string message;
+};
+
+struct LaunchResult {
+  bool ok{true};
+  std::string message;
+  std::string detail;
+};
+
 struct BenchmarkResult {
   int method_id{};
   std::string method;
@@ -49,6 +61,9 @@ struct BenchmarkResult {
   double gflops{};
   ErrorStats errors;
   std::string message;
+  bool available{true};
+  std::string implementation_variant;
+  std::string configuration;
 };
 
 InputMatrices make_inputs(const Problem& problem, std::uint32_t seed);

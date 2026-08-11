@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import MISSING, asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -36,14 +36,21 @@ class BenchmarkRecord:
     compute_capability: str
     cuda_runtime: str
     timestamp_utc: str
+    available: bool = True
+    implementation_variant: str = ""
+    configuration: str = ""
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, Any]) -> "BenchmarkRecord":
-        required = tuple(cls.__dataclass_fields__)
+        required = tuple(
+            field.name
+            for field in fields(cls)
+            if field.default is MISSING and field.default_factory is MISSING
+        )
         missing = [name for name in required if name not in values]
         if missing:
             raise ValueError(f"missing benchmark field(s): {', '.join(missing)}")
-        selected = {name: values[name] for name in required}
+        selected = {field.name: values[field.name] for field in fields(cls) if field.name in values}
         return cls(**selected)
 
     @property

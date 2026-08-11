@@ -51,16 +51,13 @@ constexpr unsigned int ceil_div(unsigned int value, unsigned int divisor) {
 
 }  // namespace
 
-cudaError_t launch_shared(const Problem& problem,
-                          const float* a,
-                          const float* b,
-                          float* c,
-                          cudaStream_t stream) {
+LaunchResult launch_shared(const Problem& problem, const DeviceOperands& operands) {
   const dim3 block(kBlock, kBlock);
   const dim3 grid(ceil_div(static_cast<unsigned int>(problem.n), kBlock),
                   ceil_div(static_cast<unsigned int>(problem.m), kBlock));
-  shared_kernel<<<grid, block, 0, stream>>>(problem, a, b, c);
-  return cudaGetLastError();
+  shared_kernel<<<grid, block, 0, operands.stream>>>(
+      problem, operands.a, operands.b, operands.c);
+  return cuda_launch_result(cudaGetLastError(), "shared-memory");
 }
 
 }  // namespace sgemm

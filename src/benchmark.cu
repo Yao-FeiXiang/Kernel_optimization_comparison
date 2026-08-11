@@ -289,11 +289,27 @@ sgemm::BenchmarkResult run_method(const sgemm::KernelSpec& kernel,
   result.method_id = kernel.id;
   result.method = std::string(kernel.name);
   result.status = "pass";
+  const sgemm::DeviceOperands operands{a.get(), b.get(), c0.get(), c.get(), stream};
+  const sgemm::PrepareResult prepared = kernel.prepare(options.problem, operands);
+  result.configuration = prepared.configuration;
+  if (!prepared.ok) {
+    result.status = "fail";
+    result.message = prepared.message;
+    return result;
+  }
+  const auto launch = [&] {
+    const sgemm::LaunchResult launched = kernel.launch(options.problem, operands);
+    if (!launched.ok) {
+      throw std::runtime_error(launched.message);
+    }
+    if (!launched.detail.empty()) {
+      result.implementation_variant = launched.detail;
+    }
+  };
 
   if (options.check) {
     restore_c(c, c0, stream);
-    const cudaError_t launch_status = kernel.launch(options.problem, a.get(), b.get(), c.get(), stream);
-    DeviceBuffer::check_cuda(launch_status, std::string(kernel.name) + " validation launch");
+    launch();
     std::vector<float> actual(reference.size());
     copy_async(actual.data(), c.get(), c.bytes(), cudaMemcpyDeviceToHost, stream, "copy validation C");
     DeviceBuffer::check_cuda(cudaStreamSynchronize(stream), "validation synchronize");
@@ -315,9 +331,7 @@ sgemm::BenchmarkResult run_method(const sgemm::KernelSpec& kernel,
 
   for (int iteration = 0; iteration < options.warmup; ++iteration) {
     restore_c(c, c0, stream);
-    DeviceBuffer::check_cuda(
-        kernel.launch(options.problem, a.get(), b.get(), c.get(), stream),
-        std::string(kernel.name) + " warmup launch");
+    launch();
   }
   DeviceBuffer::check_cuda(cudaStreamSynchronize(stream), "warmup synchronize");
 
@@ -328,9 +342,7 @@ sgemm::BenchmarkResult run_method(const sgemm::KernelSpec& kernel,
   for (int iteration = 0; iteration < options.repeat; ++iteration) {
     restore_c(c, c0, stream);
     DeviceBuffer::check_cuda(cudaEventRecord(start.get(), stream), "record start event");
-    DeviceBuffer::check_cuda(
-        kernel.launch(options.problem, a.get(), b.get(), c.get(), stream),
-        std::string(kernel.name) + " timed launch");
+    launch();
     DeviceBuffer::check_cuda(cudaEventRecord(stop.get(), stream), "record stop event");
     DeviceBuffer::check_cuda(cudaEventSynchronize(stop.get()), "synchronize stop event");
     float milliseconds = 0.0F;
@@ -406,6 +418,10 @@ void print_json(const sgemm::BenchmarkResult& result,
             << ",\"compute_capability\":\"" << json_escape(device.compute_capability) << "\""
             << ",\"cuda_runtime\":\"" << json_escape(device.cuda_runtime) << "\""
             << ",\"timestamp_utc\":\"" << timestamp << "\""
+            << ",\"available\":" << (result.available ? "true" : "false")
+            << ",\"implementation_variant\":\""
+            << json_escape(result.implementation_variant) << "\""
+            << ",\"configuration\":\"" << json_escape(result.configuration) << "\""
             << ",\"message\":\"" << json_escape(result.message) << "\"}\n";
 }
 
@@ -456,6 +472,7 @@ int run(const ParsedArguments& parsed) {
       result.status = "fail";
       result.message = error.what();
     }
+    kernel.cleanup();
     failed = failed || result.status != "pass";
     print_human(result);
     if (parsed.options.json) {

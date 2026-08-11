@@ -39,6 +39,25 @@ SAMPLE = {
 
 
 class BenchmarkRecordTest(unittest.TestCase):
+    def test_phase_b_fields_are_optional_for_old_records(self):
+        record = BenchmarkRecord.from_mapping(SAMPLE)
+        self.assertTrue(record.available)
+        self.assertEqual(record.implementation_variant, "")
+        self.assertEqual(record.configuration, "")
+
+    def test_phase_b_fields_are_preserved_when_present(self):
+        record = BenchmarkRecord.from_mapping(
+            {
+                **SAMPLE,
+                "available": False,
+                "implementation_variant": "scalar-fallback",
+                "configuration": "BM64_BN64_BK8_TM8_TN8",
+            }
+        )
+        self.assertFalse(record.available)
+        self.assertEqual(record.implementation_variant, "scalar-fallback")
+        self.assertEqual(record.configuration, "BM64_BN64_BK8_TM8_TN8")
+
     def test_from_mapping_accepts_unknown_fields(self):
         record = BenchmarkRecord.from_mapping({**SAMPLE, "future_field": 123})
         self.assertEqual(record.method, "naive")

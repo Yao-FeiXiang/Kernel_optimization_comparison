@@ -28,16 +28,12 @@ constexpr unsigned int ceil_div(unsigned int value, unsigned int divisor) {
 
 }  // namespace
 
-cudaError_t launch_naive(const Problem& problem,
-                         const float* a,
-                         const float* b,
-                         float* c,
-                         cudaStream_t stream) {
+LaunchResult launch_naive(const Problem& problem, const DeviceOperands& operands) {
   const dim3 block(32, 32);
   const dim3 grid(ceil_div(static_cast<unsigned int>(problem.n), block.x),
                   ceil_div(static_cast<unsigned int>(problem.m), block.y));
-  naive_kernel<<<grid, block, 0, stream>>>(problem, a, b, c);
-  return cudaGetLastError();
+  naive_kernel<<<grid, block, 0, operands.stream>>>(problem, operands.a, operands.b, operands.c);
+  return cuda_launch_result(cudaGetLastError(), "scalar");
 }
 
 }  // namespace sgemm
