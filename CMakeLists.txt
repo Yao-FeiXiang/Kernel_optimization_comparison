@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.24)
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES 75 80 86 89 90)
+endif()
+
+project(cuda_sgemm_teaching LANGUAGES CXX CUDA)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+add_library(sgemm_reference STATIC src/reference.cpp)
+target_include_directories(sgemm_reference PUBLIC include)
+
+enable_testing()
+add_executable(reference_test tests/reference_test.cpp)
+target_link_libraries(reference_test PRIVATE sgemm_reference)
+add_test(NAME reference_test COMMAND reference_test)
