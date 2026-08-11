@@ -8,7 +8,7 @@
 C = alpha * A * B + beta * C
 ```
 
-当前阶段包含教程的前五种方法：
+当前实现覆盖教程的主要优化路径和 cuBLAS 对照：
 
 | ID | 稳定名称 | 核心变化 |
 |---:|:---|:---|
@@ -17,8 +17,12 @@ C = alpha * A * B + beta * C
 | 3 | `shared` | 将 A/B 的 K 方向小块缓存到共享内存 |
 | 4 | `blocktiling-1d` | 每个线程计算同一列中的 8 个结果 |
 | 5 | `blocktiling-2d` | 每个线程在寄存器中累积一个 8×8 结果块 |
+| 6 | `vectorized` | 转置共享内存中的 A，并用 `float4` 访问 GMEM |
+| 9 | `autotuned` | 在正式计时前选择当前设备/尺寸上最快的预编译 tile |
+| 10 | `warptiling` | 将 128×128 block tile 进一步分配到 64×64 warp tile |
+| 0 | `cublas` | 使用相同输入、C0 恢复和计时规则的 NVIDIA cuBLAS 基线 |
 
-这些 kernel 都处理非 tile 整数倍的矩阵尺寸：越界输入以零填充，写回逐元素检查边界。
+所有自定义方法都支持非 tile 整数倍尺寸。Kernel 1–5 和 autotuned 候选直接进行边界保护；vectorized 与 warptiling 在不满足对齐/整除条件时报告 `scalar-fallback` 并调用 Kernel 5。这样批量正确性测试不会为了优化路径而牺牲尾块语义。
 
 ## 环境要求
 
@@ -26,6 +30,7 @@ C = alpha * A * B + beta * C
 - CUDA Toolkit（项目当前用 CUDA 13.3 编译验证）。
 - Python 3.9 或更高版本，只使用标准库。
 - 可选：CMake 3.24+ 和 Ninja。没有 CMake 时，Python 入口会直接调用 `nvcc`。
+- 可选：cuBLAS。CMake 和 Python 直接构建都会自动检测；缺少可链接库时方法 0 仍可列出，但状态为 `unavailable`。
 
 先确认工具和驱动：
 
@@ -56,6 +61,14 @@ python3 benchmark.py --kernel blocktiling-2d --m 1024 --n 1024 --k 1024
 ```bash
 python3 benchmark.py --all --m 1024 --n 1024 --k 1024
 ```
+
+只运行自动调优方法。候选搜索发生在正式 CUDA event 计时之前：
+
+```bash
+python3 benchmark.py --tune --m 1024 --n 1024 --k 1024
+```
+
+当前预编译候选为 `64×64×8`、`128×64×8`、`64×128×8`、`128×128×8` 和 `128×128×16`，线程寄存器 tile 均为 8×8。选择结果会写入 JSON/Markdown 的 configuration 字段，并按设备与 M/N/K 缓存到本次进程结束。
 
 运行小尺寸正确性检查，不进行性能计时：
 
@@ -90,7 +103,7 @@ python3 benchmark.py --all --m 1024 --n 1024 --k 1024 --warmup 5 --repeat 20 --u
 python3 benchmark.py --kernel 5 --results-file local-results.md --update-results
 ```
 
-更新键包含 GPU、compute capability、CUDA runtime、M/N/K、alpha/beta、warmup/repeat 和方法 ID。重复执行相同配置会更新原行；不同 GPU 或尺寸会保留为不同实验分组。写入先生成临时文件再原子替换，失败时不会留下半张表。
+更新键包含 GPU、compute capability、CUDA runtime、M/N/K、alpha/beta、warmup/repeat 和方法 ID。重复执行相同配置会更新原行；不同 GPU 或尺寸会保留为不同实验分组。表格同时展示运行变体、选中配置、相对 Naive 加速和 `% cuBLAS`；没有可用 cuBLAS 记录时对应列显示破折号。写入先生成临时文件再原子替换，失败时不会留下半张表。
 
 ## 计时与性能口径
 
@@ -118,6 +131,12 @@ ctest --test-dir build --output-on-failure
 
 ```bash
 cmake -S . -B build -DCMAKE_CUDA_ARCHITECTURES=86
+```
+
+如需显式关闭 cuBLAS：
+
+```bash
+cmake -S . -B build -DSGEMM_ENABLE_CUBLAS=OFF
 ```
 
 ## 自动化测试
@@ -175,4 +194,4 @@ benchmark runner 不包含某个 kernel 的索引或 block 配置细节，新增
 
 大矩阵使用 `--check` 很慢：CPU 参考是教学用朴素实现。先用 `--check-only --m 37 --n 41 --k 29` 验证尾块，再单独运行大尺寸性能测试。
 
-批量模式某个方法失败：runner 会继续执行其他方法，最后返回非零状态，并在文本/JSON 结果中记录失败方法和 CUDA 错误。
+批量模式某个方法失败：runner 会继续执行其他方法，最后返回非零状态，并在文本/JSON 结果中记录失败方法和 CUDA 错误。构建期不可用的 cuBLAS 记为 `unavailable`，不会把其余方法的成功批量运行变成失败。

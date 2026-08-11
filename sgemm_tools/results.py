@@ -78,7 +78,11 @@ def upsert_records(
 ) -> list[BenchmarkRecord]:
     indexed = {record.row_key: record for record in existing}
     indexed.update({record.row_key: record for record in new})
-    return sorted(indexed.values(), key=lambda record: (record.experiment_key, record.method_id))
+    return sorted(indexed.values(), key=lambda record: (record.experiment_key, _method_order(record)))
+
+
+def _method_order(record: BenchmarkRecord) -> int:
+    return 10_000 if record.method_id == 0 else record.method_id
 
 
 def _compact_json(record: BenchmarkRecord) -> str:
@@ -93,6 +97,10 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
     first = records[0]
     naive = next(
         (record for record in records if record.method_id == 1 and record.status == "pass"),
+        None,
+    )
+    cublas = next(
+        (record for record in records if record.method_id == 0 and record.status == "pass"),
         None,
     )
     lines = [
@@ -114,14 +122,28 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
     lines.extend(
         [
             "",
-            "| ID | Method | Status | Median ms | Min ms | GFLOP/s | vs Naive | Max abs error | Max rel error |",
-            "|---:|:---|:---:|---:|---:|---:|---:|---:|---:|",
+            "| ID | Method | Status | Variant / configuration | Median ms | Min ms | GFLOP/s | vs Naive | % cuBLAS | Max abs error | Max rel error |",
+            "|---:|:---|:---:|:---|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for record in records:
+        details = " / ".join(
+            value for value in (record.implementation_variant, record.configuration) if value
+        ) or "—"
+        if record.status != "pass":
+            values = [details, "—", "—", "—", "—", "—", "—", "—"]
+            lines.append(
+                "| "
+                + " | ".join([str(record.method_id), record.method, record.status, *values])
+                + " |"
+            )
+            continue
         speedup = "—"
         if naive is not None and naive.gflops > 0 and record.status == "pass":
             speedup = f"{record.gflops / naive.gflops:.3f}x"
+        percent_cublas = "—"
+        if cublas is not None and cublas.gflops > 0:
+            percent_cublas = f"{100.0 * record.gflops / cublas.gflops:.3f}%"
         lines.append(
             "| "
             + " | ".join(
@@ -129,10 +151,12 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
                     str(record.method_id),
                     record.method,
                     record.status,
+                    details,
                     _format_number(record.latency_ms),
                     _format_number(record.min_latency_ms),
                     _format_number(record.gflops),
                     speedup,
+                    percent_cublas,
                     f"{record.max_abs_error:.3e}",
                     f"{record.max_rel_error:.3e}",
                 ]
@@ -144,7 +168,7 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
 
 def render_results(records: Sequence[BenchmarkRecord]) -> str:
     groups: dict[tuple[Any, ...], list[BenchmarkRecord]] = {}
-    for record in sorted(records, key=lambda item: (item.experiment_key, item.method_id)):
+    for record in sorted(records, key=lambda item: (item.experiment_key, _method_order(item))):
         groups.setdefault(record.experiment_key, []).append(record)
     if not groups:
         return "尚无本机测试结果。运行 `python3 benchmark.py --all --update-results` 生成。"

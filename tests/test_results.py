@@ -100,6 +100,44 @@ class BenchmarkRecordTest(unittest.TestCase):
         self.assertIn("| 5 | blocktiling-2d | pass |", rendered)
         self.assertIn("| 2.000x |", rendered)
 
+    def test_render_shows_variant_configuration_and_percent_cublas(self):
+        naive = BenchmarkRecord.from_mapping(SAMPLE)
+        tiled = BenchmarkRecord.from_mapping(
+            {
+                **SAMPLE,
+                "method_id": 10,
+                "method": "warptiling",
+                "gflops": 8.84,
+                "implementation_variant": "warp-tiled",
+                "configuration": "BM128_BN128_BK16",
+            }
+        )
+        cublas = BenchmarkRecord.from_mapping(
+            {**SAMPLE, "method_id": 0, "method": "cublas", "gflops": 10.0}
+        )
+        rendered = render_results([cublas, naive, tiled])
+        self.assertIn("Variant / configuration", rendered)
+        self.assertIn("warp-tiled / BM128_BN128_BK16", rendered)
+        self.assertIn("| 88.400% |", rendered)
+        self.assertLess(rendered.index("| 10 | warptiling"), rendered.index("| 0 | cublas"))
+
+    def test_unavailable_method_renders_without_numeric_metrics(self):
+        unavailable = BenchmarkRecord.from_mapping(
+            {
+                **SAMPLE,
+                "method_id": 0,
+                "method": "cublas",
+                "status": "unavailable",
+                "available": False,
+                "latency_ms": 0.0,
+                "min_latency_ms": 0.0,
+                "gflops": 0.0,
+            }
+        )
+        rendered = render_results([BenchmarkRecord.from_mapping(SAMPLE), unavailable])
+        row = next(line for line in rendered.splitlines() if line.startswith("| 0 |"))
+        self.assertIn("| unavailable | — | — | — | — | — |", row)
+
 
 class ResultsFileTest(unittest.TestCase):
     def test_update_is_idempotent_and_preserves_text_outside_markers(self):

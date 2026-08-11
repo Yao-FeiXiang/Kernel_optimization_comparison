@@ -22,6 +22,10 @@ class DocumentationTest(unittest.TestCase):
             "shared",
             "blocktiling-1d",
             "blocktiling-2d",
+            "vectorized",
+            "autotuned",
+            "warptiling",
+            "cublas",
         ):
             self.assertIn(method, self.readme)
 
@@ -41,6 +45,7 @@ class DocumentationTest(unittest.TestCase):
             "--check-only",
             "--update-results",
             "--results-file",
+            "--tune",
         ):
             self.assertIn(option, help_result.stdout)
             self.assertIn(option, self.readme)
