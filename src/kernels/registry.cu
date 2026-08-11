@@ -8,6 +8,8 @@ std::vector<KernelSpec> phase_a_kernels() {
   return {
       {1, "naive", "One output element per thread", launch_naive},
       {2, "coalesced", "Coalesced global-memory access", launch_coalesced},
+      {3, "shared", "Shared-memory cache blocking", launch_shared},
+      {4, "blocktiling-1d", "Eight output rows per thread", launch_blocktiling_1d},
   };
 }
 

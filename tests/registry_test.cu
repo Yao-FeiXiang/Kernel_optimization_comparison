@@ -6,12 +6,16 @@
 
 int main() {
   const auto kernels = sgemm::phase_a_kernels();
-  assert(kernels.size() == 2);
+  assert(kernels.size() == 4);
   assert(sgemm::find_kernel("1").has_value());
   assert(sgemm::find_kernel("1")->name == "naive");
   assert(sgemm::find_kernel("naive")->id == 1);
   assert(sgemm::find_kernel("2")->name == "coalesced");
   assert(sgemm::find_kernel("coalesced")->id == 2);
+  assert(sgemm::find_kernel("3")->name == "shared");
+  assert(sgemm::find_kernel("shared")->id == 3);
+  assert(sgemm::find_kernel("4")->name == "blocktiling-1d");
+  assert(sgemm::find_kernel("blocktiling-1d")->id == 4);
   assert(!sgemm::find_kernel("missing").has_value());
 
   std::set<int> ids;

@@ -23,6 +23,8 @@ add_library(sgemm_kernels STATIC
   src/kernels/registry.cu
   src/kernels/kernel_01_naive.cu
   src/kernels/kernel_02_coalesced.cu
+  src/kernels/kernel_03_shared.cu
+  src/kernels/kernel_04_blocktiling_1d.cu
 )
 target_include_directories(sgemm_kernels PUBLIC include)
 
