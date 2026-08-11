@@ -32,3 +32,6 @@ target_include_directories(sgemm_kernels PUBLIC include)
 add_executable(registry_test tests/registry_test.cu)
 target_link_libraries(registry_test PRIVATE sgemm_kernels)
 add_test(NAME registry_test COMMAND registry_test)
+
+add_executable(sgemm_bench src/benchmark.cu)
+target_link_libraries(sgemm_bench PRIVATE sgemm_reference sgemm_kernels)
