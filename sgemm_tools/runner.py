@@ -128,10 +128,11 @@ def nvcc_command(root: Path, output: Path) -> list[str]:
         (directory for directory in library_directories if (directory / "libcublas.so").exists()),
         None,
     )
-    cublas_flags = ["-DSGEMM_ENABLE_CUBLAS=0"]
+    cublas_compile_flags = ["-DSGEMM_ENABLE_CUBLAS=0"]
+    cublas_link_flags: list[str] = []
     if cublas_directory is not None:
-        cublas_flags = [
-            "-DSGEMM_ENABLE_CUBLAS=1",
+        cublas_compile_flags = ["-DSGEMM_ENABLE_CUBLAS=1"]
+        cublas_link_flags = [
             f"-L{cublas_directory}",
             "-lcublas",
         ]
@@ -141,8 +142,9 @@ def nvcc_command(root: Path, output: Path) -> list[str]:
         "-O3",
         "-lineinfo",
         f"-I{root / 'include'}",
-        *cublas_flags,
+        *cublas_compile_flags,
         *(str(root / source) for source in PHASE_A_SOURCES),
+        *cublas_link_flags,
         "-o",
         str(output),
     ]

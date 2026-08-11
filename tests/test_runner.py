@@ -1,7 +1,9 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from sgemm_tools.runner import (
     NativeRunOptions,
@@ -120,6 +122,19 @@ class BuildCommandTest(unittest.TestCase):
     def test_tune_selects_the_autotuned_native_method(self):
         arguments = native_arguments(NativeRunOptions(tune=True))
         self.assertEqual(arguments[0], "--tune")
+
+    def test_cublas_library_is_linked_after_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cuda_root = Path(directory) / "cuda"
+            library = cuda_root / "lib64" / "libcublas.so"
+            library.parent.mkdir(parents=True)
+            library.touch()
+            with mock.patch.dict(os.environ, {"CUDA_HOME": str(cuda_root)}):
+                command = nvcc_command(ROOT, Path(directory) / "sgemm_bench")
+        self.assertGreater(
+            command.index("-lcublas"),
+            command.index(str(ROOT / "src/kernels/cublas_baseline.cu")),
+        )
 
 
 if __name__ == "__main__":
