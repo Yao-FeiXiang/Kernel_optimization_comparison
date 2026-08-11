@@ -18,3 +18,14 @@ enable_testing()
 add_executable(reference_test tests/reference_test.cpp)
 target_link_libraries(reference_test PRIVATE sgemm_reference)
 add_test(NAME reference_test COMMAND reference_test)
+
+add_library(sgemm_kernels STATIC
+  src/kernels/registry.cu
+  src/kernels/kernel_01_naive.cu
+  src/kernels/kernel_02_coalesced.cu
+)
+target_include_directories(sgemm_kernels PUBLIC include)
+
+add_executable(registry_test tests/registry_test.cu)
+target_link_libraries(registry_test PRIVATE sgemm_kernels)
+add_test(NAME registry_test COMMAND registry_test)
