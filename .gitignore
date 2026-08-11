@@ -1,0 +1,32 @@
+# CMake / Ninja / local builds
+/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+
+# CUDA and native build products
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.exp
+*.lib
+*.ptx
+*.cubin
+*.fatbin
+
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Atomic-write and local benchmark scratch files
+*.tmp
+*.log
