@@ -47,6 +47,12 @@ cudaError_t launch_blocktiling_1d(const Problem& problem,
                                   float* c,
                                   cudaStream_t stream);
 
+cudaError_t launch_blocktiling_2d(const Problem& problem,
+                                  const float* a,
+                                  const float* b,
+                                  float* c,
+                                  cudaStream_t stream);
+
 std::vector<KernelSpec> phase_a_kernels();
 std::optional<KernelSpec> find_kernel(std::string_view selector);
 
