@@ -6,7 +6,7 @@ namespace sgemm {
 namespace {
 
 PrepareResult fixed_prepare(const Problem&, const DeviceOperands&) {
-  return {true, "fixed", {}};
+  return {true, true, "fixed", {}};
 }
 
 void fixed_cleanup() {}
@@ -29,6 +29,8 @@ std::vector<KernelSpec> phase_a_kernels() {
        launch_autotuned, fixed_cleanup},
       {10, "warptiling", "Assign register tiles at warp granularity", fixed_prepare,
        launch_warptiling, fixed_cleanup},
+      {0, "cublas", "NVIDIA cuBLAS SGEMM baseline", prepare_cublas, launch_cublas,
+       cleanup_cublas},
   };
 }
 

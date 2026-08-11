@@ -17,6 +17,7 @@ CUDA_SOURCES = [
     ROOT / "src/kernels/kernel_06_vectorized.cu",
     ROOT / "src/kernels/kernel_09_autotuned.cu",
     ROOT / "src/kernels/kernel_10_warptiling.cu",
+    ROOT / "src/kernels/cublas_baseline.cu",
 ]
 
 
@@ -77,7 +78,7 @@ class NativeCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             [line.split()[0] for line in result.stdout.splitlines() if line],
-            ["1", "2", "3", "4", "5", "6", "9", "10"],
+            ["1", "2", "3", "4", "5", "6", "9", "10", "0"],
         )
 
     def test_unknown_kernel_is_a_usage_error(self):

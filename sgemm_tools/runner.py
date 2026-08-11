@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ PHASE_A_SOURCES = (
     "src/kernels/kernel_06_vectorized.cu",
     "src/kernels/kernel_09_autotuned.cu",
     "src/kernels/kernel_10_warptiling.cu",
+    "src/kernels/cublas_baseline.cu",
 )
 
 
@@ -119,12 +121,27 @@ def parse_json_lines(output: str) -> list[BenchmarkRecord]:
 
 
 def nvcc_command(root: Path, output: Path) -> list[str]:
+    nvcc_path = Path(shutil.which("nvcc") or "nvcc")
+    cuda_root = Path(os.environ.get("CUDA_HOME", nvcc_path.parent.parent))
+    library_directories = (cuda_root / "lib64", cuda_root / "targets/x86_64-linux/lib")
+    cublas_directory = next(
+        (directory for directory in library_directories if (directory / "libcublas.so").exists()),
+        None,
+    )
+    cublas_flags = ["-DSGEMM_ENABLE_CUBLAS=0"]
+    if cublas_directory is not None:
+        cublas_flags = [
+            "-DSGEMM_ENABLE_CUBLAS=1",
+            f"-L{cublas_directory}",
+            "-lcublas",
+        ]
     return [
         "nvcc",
         "-std=c++17",
         "-O3",
         "-lineinfo",
         f"-I{root / 'include'}",
+        *cublas_flags,
         *(str(root / source) for source in PHASE_A_SOURCES),
         "-o",
         str(output),

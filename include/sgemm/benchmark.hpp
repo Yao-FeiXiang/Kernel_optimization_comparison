@@ -42,6 +42,7 @@ struct ErrorStats {
 
 struct PrepareResult {
   bool ok{true};
+  bool available{true};
   std::string configuration;
   std::string message;
 };

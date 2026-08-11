@@ -57,6 +57,10 @@ LaunchResult launch_autotuned(const Problem& problem, const DeviceOperands& oper
 
 LaunchResult launch_warptiling(const Problem& problem, const DeviceOperands& operands);
 
+PrepareResult prepare_cublas(const Problem& problem, const DeviceOperands& operands);
+LaunchResult launch_cublas(const Problem& problem, const DeviceOperands& operands);
+void cleanup_cublas();
+
 std::vector<KernelSpec> phase_a_kernels();
 std::optional<KernelSpec> find_kernel(std::string_view selector);
 

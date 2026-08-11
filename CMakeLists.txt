@@ -29,8 +29,18 @@ add_library(sgemm_kernels STATIC
   src/kernels/kernel_06_vectorized.cu
   src/kernels/kernel_09_autotuned.cu
   src/kernels/kernel_10_warptiling.cu
+  src/kernels/cublas_baseline.cu
 )
 target_include_directories(sgemm_kernels PUBLIC include)
+
+option(SGEMM_ENABLE_CUBLAS "Build the optional cuBLAS baseline" ON)
+find_package(CUDAToolkit QUIET)
+if(SGEMM_ENABLE_CUBLAS AND TARGET CUDA::cublas)
+  target_compile_definitions(sgemm_kernels PUBLIC SGEMM_ENABLE_CUBLAS=1)
+  target_link_libraries(sgemm_kernels PUBLIC CUDA::cublas)
+else()
+  target_compile_definitions(sgemm_kernels PUBLIC SGEMM_ENABLE_CUBLAS=0)
+endif()
 
 add_executable(registry_test tests/registry_test.cu)
 target_link_libraries(registry_test PRIVATE sgemm_kernels)

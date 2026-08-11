@@ -298,6 +298,12 @@ sgemm::BenchmarkResult run_method(const sgemm::KernelSpec& kernel,
   const sgemm::DeviceOperands operands{a.get(), b.get(), c0.get(), c.get(), stream};
   const sgemm::PrepareResult prepared = kernel.prepare(options.problem, operands);
   result.configuration = prepared.configuration;
+  result.available = prepared.available;
+  if (!prepared.available) {
+    result.status = "unavailable";
+    result.message = prepared.message;
+    return result;
+  }
   if (!prepared.ok) {
     result.status = "fail";
     result.message = prepared.message;
@@ -481,7 +487,7 @@ int run(const ParsedArguments& parsed) {
       result.message = error.what();
     }
     kernel.cleanup();
-    failed = failed || result.status != "pass";
+    failed = failed || result.status == "fail";
     print_human(result);
     if (parsed.options.json) {
       print_json(result, parsed.options, device, timestamp);

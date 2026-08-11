@@ -6,7 +6,7 @@
 
 int main() {
   const auto kernels = sgemm::phase_a_kernels();
-  assert(kernels.size() == 8);
+  assert(kernels.size() == 9);
   assert(sgemm::find_kernel("1").has_value());
   assert(sgemm::find_kernel("1")->name == "naive");
   assert(sgemm::find_kernel("naive")->id == 1);
@@ -24,6 +24,8 @@ int main() {
   assert(sgemm::find_kernel("autotuned")->id == 9);
   assert(sgemm::find_kernel("10")->name == "warptiling");
   assert(sgemm::find_kernel("warptiling")->id == 10);
+  assert(sgemm::find_kernel("0")->name == "cublas");
+  assert(sgemm::find_kernel("cublas")->id == 0);
   assert(!sgemm::find_kernel("missing").has_value());
 
   std::set<int> ids;
@@ -38,5 +40,12 @@ int main() {
   }
   assert(ids.size() == kernels.size());
   assert(names.size() == kernels.size());
+
+#if !defined(SGEMM_ENABLE_CUBLAS) || !SGEMM_ENABLE_CUBLAS
+  const sgemm::DeviceOperands no_device{nullptr, nullptr, nullptr, nullptr, nullptr};
+  const auto cublas = sgemm::prepare_cublas({1, 1, 1, 1.0F, 0.0F}, no_device);
+  assert(cublas.ok);
+  assert(!cublas.available);
+#endif
   return 0;
 }

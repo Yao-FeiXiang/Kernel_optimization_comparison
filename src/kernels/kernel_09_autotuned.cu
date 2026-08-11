@@ -124,7 +124,7 @@ struct TuneCache {
 TuneCache g_cache;
 
 PrepareResult cuda_prepare_error(cudaError_t status, const char* operation) {
-  return {false, {}, std::string(operation) + ": " + cudaGetErrorString(status)};
+  return {false, true, {}, std::string(operation) + ": " + cudaGetErrorString(status)};
 }
 
 }  // namespace
@@ -137,7 +137,8 @@ PrepareResult prepare_autotuned(const Problem& problem, const DeviceOperands& op
   }
   if (g_cache.device == device && g_cache.m == problem.m && g_cache.n == problem.n &&
       g_cache.k == problem.k && g_cache.selected >= 0) {
-    return {true, kCandidates[static_cast<std::size_t>(g_cache.selected)].configuration, {}};
+    return {true, true, kCandidates[static_cast<std::size_t>(g_cache.selected)].configuration,
+            {}};
   }
 
   cudaEvent_t start = nullptr;
@@ -202,10 +203,10 @@ PrepareResult prepare_autotuned(const Problem& problem, const DeviceOperands& op
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
   if (best_index < 0) {
-    return {false, {}, "no autotuning candidate launched successfully"};
+    return {false, true, {}, "no autotuning candidate launched successfully"};
   }
   g_cache = {device, problem.m, problem.n, problem.k, best_index};
-  return {true, kCandidates[static_cast<std::size_t>(best_index)].configuration, {}};
+  return {true, true, kCandidates[static_cast<std::size_t>(best_index)].configuration, {}};
 }
 
 LaunchResult launch_autotuned(const Problem& problem, const DeviceOperands& operands) {

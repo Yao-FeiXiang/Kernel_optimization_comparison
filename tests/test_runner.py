@@ -113,6 +113,7 @@ class BuildCommandTest(unittest.TestCase):
             "src/kernels/kernel_06_vectorized.cu",
             "src/kernels/kernel_09_autotuned.cu",
             "src/kernels/kernel_10_warptiling.cu",
+            "src/kernels/cublas_baseline.cu",
         ):
             self.assertIn(str(ROOT / source), command)
 
