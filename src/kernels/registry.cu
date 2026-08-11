@@ -27,6 +27,8 @@ std::vector<KernelSpec> phase_a_kernels() {
        launch_vectorized, fixed_cleanup},
       {9, "autotuned", "Select the fastest precompiled tile configuration", prepare_autotuned,
        launch_autotuned, fixed_cleanup},
+      {10, "warptiling", "Assign register tiles at warp granularity", fixed_prepare,
+       launch_warptiling, fixed_cleanup},
   };
 }
 

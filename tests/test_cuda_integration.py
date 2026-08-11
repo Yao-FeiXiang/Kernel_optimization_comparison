@@ -42,7 +42,7 @@ class CudaIntegrationTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(result.stdout.strip().splitlines()), 7)
+        self.assertEqual(len(result.stdout.strip().splitlines()), 8)
 
     @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
     def test_all_kernels_match_cpu_reference_on_tail_shape(self):
@@ -56,7 +56,7 @@ class CudaIntegrationTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        self.assertEqual(result.stdout.count('"status":"pass"'), 7)
+        self.assertEqual(result.stdout.count('"status":"pass"'), 8)
 
     @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
     def test_vectorized_method_reports_float4_and_scalar_fallback(self):

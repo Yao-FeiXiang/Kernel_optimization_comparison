@@ -23,6 +23,7 @@ PHASE_A_SOURCES = (
     "src/kernels/kernel_05_blocktiling_2d.cu",
     "src/kernels/kernel_06_vectorized.cu",
     "src/kernels/kernel_09_autotuned.cu",
+    "src/kernels/kernel_10_warptiling.cu",
 )
 
 

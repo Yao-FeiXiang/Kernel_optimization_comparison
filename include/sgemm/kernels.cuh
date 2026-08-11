@@ -55,6 +55,8 @@ LaunchResult launch_vectorized(const Problem& problem, const DeviceOperands& ope
 PrepareResult prepare_autotuned(const Problem& problem, const DeviceOperands& operands);
 LaunchResult launch_autotuned(const Problem& problem, const DeviceOperands& operands);
 
+LaunchResult launch_warptiling(const Problem& problem, const DeviceOperands& operands);
+
 std::vector<KernelSpec> phase_a_kernels();
 std::optional<KernelSpec> find_kernel(std::string_view selector);
 
