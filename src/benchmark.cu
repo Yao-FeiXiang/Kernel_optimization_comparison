@@ -93,6 +93,7 @@ struct ParsedArguments {
   sgemm::RunOptions options;
   std::optional<std::string> kernel;
   bool all{false};
+  bool tune{false};
   bool list{false};
   bool help{false};
 };
@@ -104,11 +105,12 @@ struct DeviceInfo {
 };
 
 std::string help_text() {
-  return R"(Usage: sgemm_bench (--kernel ID_OR_NAME | --all | --list) [options]
+  return R"(Usage: sgemm_bench (--kernel ID_OR_NAME | --all | --tune | --list) [options]
 
 Selectors:
   --kernel VALUE   Run one method by tutorial ID or stable name
   --all            Run every registered method
+  --tune           Run method 9 and select its fastest tile before timing
   --list           List methods without opening a CUDA device
 
 Problem:
@@ -179,6 +181,8 @@ ParsedArguments parse_arguments(int argc, char** argv) {
       parsed.kernel = require_value(argc, argv, index, option);
     } else if (option == "--all") {
       parsed.all = true;
+    } else if (option == "--tune") {
+      parsed.tune = true;
     } else if (option == "--list") {
       parsed.list = true;
     } else if (option == "--m") {
@@ -217,8 +221,10 @@ ParsedArguments parse_arguments(int argc, char** argv) {
     }
   }
 
-  if (parsed.kernel && parsed.all) {
-    throw UsageError("--kernel and --all are mutually exclusive");
+  const int selectors = static_cast<int>(parsed.kernel.has_value()) +
+                        static_cast<int>(parsed.all) + static_cast<int>(parsed.tune);
+  if (selectors > 1) {
+    throw UsageError("--kernel, --all, and --tune are mutually exclusive");
   }
   const auto& problem = parsed.options.problem;
   if (problem.m <= 0 || problem.n <= 0 || problem.k <= 0) {
@@ -239,8 +245,8 @@ ParsedArguments parse_arguments(int argc, char** argv) {
   if (parsed.kernel && !sgemm::find_kernel(*parsed.kernel)) {
     throw UsageError("unknown kernel: " + *parsed.kernel);
   }
-  if (!parsed.help && !parsed.list && !parsed.kernel && !parsed.all) {
-    throw UsageError("specify --kernel, --all, or --list");
+  if (!parsed.help && !parsed.list && selectors == 0) {
+    throw UsageError("specify --kernel, --all, --tune, or --list");
   }
   return parsed;
 }
@@ -440,6 +446,8 @@ int run(const ParsedArguments& parsed) {
   std::vector<sgemm::KernelSpec> kernels;
   if (parsed.all) {
     kernels = sgemm::phase_a_kernels();
+  } else if (parsed.tune) {
+    kernels.push_back(*sgemm::find_kernel("9"));
   } else {
     kernels.push_back(*sgemm::find_kernel(*parsed.kernel));
   }

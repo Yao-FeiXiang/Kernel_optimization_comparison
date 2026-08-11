@@ -25,6 +25,8 @@ std::vector<KernelSpec> phase_a_kernels() {
        launch_blocktiling_2d, fixed_cleanup},
       {6, "vectorized", "Transposed shared memory and float4 access", fixed_prepare,
        launch_vectorized, fixed_cleanup},
+      {9, "autotuned", "Select the fastest precompiled tile configuration", prepare_autotuned,
+       launch_autotuned, fixed_cleanup},
   };
 }
 

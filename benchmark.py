@@ -29,6 +29,7 @@ def create_parser() -> argparse.ArgumentParser:
     selectors = parser.add_mutually_exclusive_group(required=True)
     selectors.add_argument("--kernel", help="tutorial ID or stable method name")
     selectors.add_argument("--all", action="store_true", help="run all registered methods")
+    selectors.add_argument("--tune", action="store_true", help="run the autotuned method")
     selectors.add_argument("--list", action="store_true", help="list methods without using a GPU")
     parser.add_argument("--m", type=int, default=1024)
     parser.add_argument("--n", type=int, default=1024)
@@ -75,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
         options = NativeRunOptions(
             kernel=arguments.kernel,
             all=arguments.all,
+            tune=arguments.tune,
             m=arguments.m,
             n=arguments.n,
             k=arguments.k,

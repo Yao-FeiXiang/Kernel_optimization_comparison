@@ -22,6 +22,7 @@ PHASE_A_SOURCES = (
     "src/kernels/kernel_04_blocktiling_1d.cu",
     "src/kernels/kernel_05_blocktiling_2d.cu",
     "src/kernels/kernel_06_vectorized.cu",
+    "src/kernels/kernel_09_autotuned.cu",
 )
 
 
@@ -37,6 +38,7 @@ class ResultParseError(ValueError):
 class NativeRunOptions:
     kernel: Optional[str] = None
     all: bool = False
+    tune: bool = False
     m: int = 1024
     n: int = 1024
     k: int = 1024
@@ -53,12 +55,14 @@ class NativeRunOptions:
 
 
 def native_arguments(options: NativeRunOptions) -> list[str]:
-    if options.kernel is not None and options.all:
-        raise ValueError("kernel and all are mutually exclusive")
+    if sum((options.kernel is not None, options.all, options.tune)) != 1:
+        raise ValueError("kernel, all, and tune are mutually exclusive selectors")
     if options.kernel is not None:
         arguments = ["--kernel", options.kernel]
     elif options.all:
         arguments = ["--all"]
+    elif options.tune:
+        arguments = ["--tune"]
     else:
         raise ValueError("a kernel or all must be selected")
     arguments.extend(

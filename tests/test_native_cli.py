@@ -14,6 +14,8 @@ CUDA_SOURCES = [
     ROOT / "src/kernels/kernel_03_shared.cu",
     ROOT / "src/kernels/kernel_04_blocktiling_1d.cu",
     ROOT / "src/kernels/kernel_05_blocktiling_2d.cu",
+    ROOT / "src/kernels/kernel_06_vectorized.cu",
+    ROOT / "src/kernels/kernel_09_autotuned.cu",
 ]
 
 
@@ -65,6 +67,7 @@ class NativeCliTest(unittest.TestCase):
             "--check",
             "--check-only",
             "--json",
+            "--tune",
         ):
             self.assertIn(option, result.stdout)
 
@@ -73,7 +76,7 @@ class NativeCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             [line.split()[0] for line in result.stdout.splitlines() if line],
-            ["1", "2", "3", "4", "5"],
+            ["1", "2", "3", "4", "5", "6", "9"],
         )
 
     def test_unknown_kernel_is_a_usage_error(self):
@@ -88,6 +91,11 @@ class NativeCliTest(unittest.TestCase):
 
     def test_kernel_and_all_are_mutually_exclusive(self):
         result = self.run_cli("--kernel", "1", "--all")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("mutually exclusive", result.stderr.lower())
+
+    def test_tune_and_kernel_are_mutually_exclusive(self):
+        result = self.run_cli("--tune", "--kernel", "1")
         self.assertEqual(result.returncode, 2)
         self.assertIn("mutually exclusive", result.stderr.lower())
 

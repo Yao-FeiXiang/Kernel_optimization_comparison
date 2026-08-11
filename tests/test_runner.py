@@ -111,8 +111,13 @@ class BuildCommandTest(unittest.TestCase):
             "src/kernels/kernel_04_blocktiling_1d.cu",
             "src/kernels/kernel_05_blocktiling_2d.cu",
             "src/kernels/kernel_06_vectorized.cu",
+            "src/kernels/kernel_09_autotuned.cu",
         ):
             self.assertIn(str(ROOT / source), command)
+
+    def test_tune_selects_the_autotuned_native_method(self):
+        arguments = native_arguments(NativeRunOptions(tune=True))
+        self.assertEqual(arguments[0], "--tune")
 
 
 if __name__ == "__main__":

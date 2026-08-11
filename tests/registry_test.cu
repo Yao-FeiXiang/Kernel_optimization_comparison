@@ -6,7 +6,7 @@
 
 int main() {
   const auto kernels = sgemm::phase_a_kernels();
-  assert(kernels.size() == 6);
+  assert(kernels.size() == 7);
   assert(sgemm::find_kernel("1").has_value());
   assert(sgemm::find_kernel("1")->name == "naive");
   assert(sgemm::find_kernel("naive")->id == 1);
@@ -20,6 +20,8 @@ int main() {
   assert(sgemm::find_kernel("blocktiling-2d")->id == 5);
   assert(sgemm::find_kernel("6")->name == "vectorized");
   assert(sgemm::find_kernel("vectorized")->id == 6);
+  assert(sgemm::find_kernel("9")->name == "autotuned");
+  assert(sgemm::find_kernel("autotuned")->id == 9);
   assert(!sgemm::find_kernel("missing").has_value());
 
   std::set<int> ids;
