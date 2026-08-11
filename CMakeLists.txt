@@ -26,6 +26,7 @@ add_library(sgemm_kernels STATIC
   src/kernels/kernel_03_shared.cu
   src/kernels/kernel_04_blocktiling_1d.cu
   src/kernels/kernel_05_blocktiling_2d.cu
+  src/kernels/kernel_06_vectorized.cu
 )
 target_include_directories(sgemm_kernels PUBLIC include)
 

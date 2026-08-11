@@ -21,6 +21,7 @@ PHASE_A_SOURCES = (
     "src/kernels/kernel_03_shared.cu",
     "src/kernels/kernel_04_blocktiling_1d.cu",
     "src/kernels/kernel_05_blocktiling_2d.cu",
+    "src/kernels/kernel_06_vectorized.cu",
 )
 
 

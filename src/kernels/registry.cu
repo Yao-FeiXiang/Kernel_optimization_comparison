@@ -23,6 +23,8 @@ std::vector<KernelSpec> phase_a_kernels() {
        launch_blocktiling_1d, fixed_cleanup},
       {5, "blocktiling-2d", "An 8x8 output tile per thread", fixed_prepare,
        launch_blocktiling_2d, fixed_cleanup},
+      {6, "vectorized", "Transposed shared memory and float4 access", fixed_prepare,
+       launch_vectorized, fixed_cleanup},
   };
 }
 
