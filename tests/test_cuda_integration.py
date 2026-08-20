@@ -153,6 +153,39 @@ class CudaIntegrationTest(unittest.TestCase):
             measurements["coalesced"], measurements["naive"] * 1.5
         )
 
+    @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
+    def test_blocktiling_2d_reports_fast_and_tail_safe_variants(self):
+        cases = (
+            (128, 128, 64, "register-tile-2d-fast"),
+            (131, 127, 35, "tail-safe"),
+        )
+        for m, n, k, expected_variant in cases:
+            with self.subTest(m=m, n=n, k=k):
+                arguments = native_arguments(
+                    NativeRunOptions(
+                        kernel="blocktiling-2d",
+                        m=m,
+                        n=n,
+                        k=k,
+                        check_only=True,
+                        json=True,
+                    )
+                )
+                result = subprocess.run(
+                    [str(self.executable), *arguments],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                record = next(
+                    json.loads(line)
+                    for line in result.stdout.splitlines()
+                    if line.startswith("{")
+                )
+                self.assertEqual(record["status"], "pass")
+                self.assertEqual(record["implementation_variant"], expected_variant)
+
 
 if __name__ == "__main__":
     unittest.main()
