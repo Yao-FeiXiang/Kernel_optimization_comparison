@@ -136,6 +136,19 @@ class BuildCommandTest(unittest.TestCase):
             command.index(str(ROOT / "src/kernels/cublas_baseline.cu")),
         )
 
+    def test_nvcc_command_targets_a100_by_default(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.dict(os.environ, {}, clear=True):
+                command = nvcc_command(ROOT, Path(directory) / "sgemm_bench")
+        self.assertIn("-arch=sm_80", command)
+
+    def test_nvcc_command_allows_cuda_arch_override(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.dict(os.environ, {"SGEMM_CUDA_ARCH": "sm_90"}):
+                command = nvcc_command(ROOT, Path(directory) / "sgemm_bench")
+        self.assertIn("-arch=sm_90", command)
+        self.assertNotIn("-arch=sm_80", command)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -186,6 +186,51 @@ class CudaIntegrationTest(unittest.TestCase):
                 self.assertEqual(record["status"], "pass")
                 self.assertEqual(record["implementation_variant"], expected_variant)
 
+    @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
+    def test_autotuned_reports_vectorized_candidate_and_tail_safe_variant(self):
+        candidate_names = {
+            "BM64_BN64_BK16_TM4_TN4",
+            "BM64_BN64_BK8_TM8_TN8",
+            "BM128_BN64_BK8_TM8_TN8",
+            "BM64_BN128_BK8_TM8_TN8",
+            "BM128_BN128_BK8_TM8_TN8",
+            "BM128_BN128_BK16_TM8_TN8",
+        }
+        cases = (
+            (128, 128, 64, "autotuned-vectorized"),
+            (131, 127, 35, "tail-safe"),
+        )
+        for m, n, k, expected_variant in cases:
+            with self.subTest(m=m, n=n, k=k):
+                arguments = native_arguments(
+                    NativeRunOptions(
+                        kernel="autotuned",
+                        m=m,
+                        n=n,
+                        k=k,
+                        check_only=True,
+                        json=True,
+                    )
+                )
+                result = subprocess.run(
+                    [str(self.executable), *arguments],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                record = next(
+                    json.loads(line)
+                    for line in result.stdout.splitlines()
+                    if line.startswith("{")
+                )
+                self.assertEqual(record["status"], "pass")
+                self.assertEqual(record["implementation_variant"], expected_variant)
+                if expected_variant == "autotuned-vectorized":
+                    self.assertIn(record["configuration"], candidate_names)
+                else:
+                    self.assertEqual(record["configuration"], "tail-safe")
+
 
 if __name__ == "__main__":
     unittest.main()

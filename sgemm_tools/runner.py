@@ -123,6 +123,7 @@ def parse_json_lines(output: str) -> list[BenchmarkRecord]:
 def nvcc_command(root: Path, output: Path) -> list[str]:
     nvcc_path = Path(shutil.which("nvcc") or "nvcc")
     cuda_root = Path(os.environ.get("CUDA_HOME", nvcc_path.parent.parent))
+    cuda_arch = os.environ.get("SGEMM_CUDA_ARCH", "sm_80")
     library_directories = (cuda_root / "lib64", cuda_root / "targets/x86_64-linux/lib")
     cublas_directory = next(
         (directory for directory in library_directories if (directory / "libcublas.so").exists()),
@@ -141,6 +142,7 @@ def nvcc_command(root: Path, output: Path) -> list[str]:
         "-std=c++17",
         "-O3",
         "-lineinfo",
+        f"-arch={cuda_arch}",
         f"-I{root / 'include'}",
         *cublas_compile_flags,
         *(str(root / source) for source in PHASE_A_SOURCES),
