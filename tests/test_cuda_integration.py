@@ -231,6 +231,44 @@ class CudaIntegrationTest(unittest.TestCase):
                 else:
                     self.assertEqual(record["configuration"], "tail-safe")
 
+    @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
+    def test_warptiling_selects_device_profile_and_tail_safe_variant(self):
+        cases = (
+            (128, 128, 64, "warp-tiled-a100"),
+            (131, 127, 35, "tail-safe"),
+        )
+        expected_configuration = (
+            "BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128"
+        )
+        for m, n, k, expected_variant in cases:
+            with self.subTest(m=m, n=n, k=k):
+                arguments = native_arguments(
+                    NativeRunOptions(
+                        kernel="warptiling",
+                        m=m,
+                        n=n,
+                        k=k,
+                        check_only=True,
+                        json=True,
+                    )
+                )
+                result = subprocess.run(
+                    [str(self.executable), *arguments],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                record = next(
+                    json.loads(line)
+                    for line in result.stdout.splitlines()
+                    if line.startswith("{")
+                )
+                self.assertEqual(record["status"], "pass")
+                self.assertEqual(record["compute_capability"], "8.0")
+                self.assertEqual(record["configuration"], expected_configuration)
+                self.assertEqual(record["implementation_variant"], expected_variant)
+
 
 if __name__ == "__main__":
     unittest.main()

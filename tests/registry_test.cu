@@ -24,6 +24,7 @@ int main() {
   assert(sgemm::find_kernel("autotuned")->id == 9);
   assert(sgemm::find_kernel("10")->name == "warptiling");
   assert(sgemm::find_kernel("warptiling")->id == 10);
+  assert(sgemm::find_kernel("warptiling")->prepare == sgemm::prepare_warptiling);
   assert(sgemm::find_kernel("0")->name == "cublas");
   assert(sgemm::find_kernel("cublas")->id == 0);
   assert(!sgemm::find_kernel("missing").has_value());

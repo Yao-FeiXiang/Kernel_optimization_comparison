@@ -55,6 +55,7 @@ LaunchResult launch_vectorized(const Problem& problem, const DeviceOperands& ope
 PrepareResult prepare_autotuned(const Problem& problem, const DeviceOperands& operands);
 LaunchResult launch_autotuned(const Problem& problem, const DeviceOperands& operands);
 
+PrepareResult prepare_warptiling(const Problem& problem, const DeviceOperands& operands);
 LaunchResult launch_warptiling(const Problem& problem, const DeviceOperands& operands);
 
 PrepareResult prepare_cublas(const Problem& problem, const DeviceOperands& operands);
