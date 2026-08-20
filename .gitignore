@@ -30,3 +30,6 @@ htmlcov/
 # Atomic-write and local benchmark scratch files
 *.tmp
 *.log
+
+# Isolated feature worktrees
+/.worktrees/
