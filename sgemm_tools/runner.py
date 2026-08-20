@@ -165,6 +165,23 @@ def _run_build(command: Sequence[str], root: Path) -> None:
         raise BuildError(f"build command failed ({result.returncode}): {' '.join(command)}\n{details}")
 
 
+def _build_inputs(root: Path) -> list[Path]:
+    inputs = [root / source for source in PHASE_A_SOURCES]
+    inputs.append(root / "CMakeLists.txt")
+    include_dir = root / "include"
+    if include_dir.exists():
+        inputs.extend(path for path in include_dir.rglob("*") if path.is_file())
+    return [path for path in inputs if path.exists()]
+
+
+def executable_is_stale(root: Path, executable: Path) -> bool:
+    """Return whether the benchmark is missing or older than a build input."""
+    if not executable.exists():
+        return True
+    executable_mtime = executable.stat().st_mtime_ns
+    return any(path.stat().st_mtime_ns > executable_mtime for path in _build_inputs(root))
+
+
 def build_executable(
     root: Path,
     build_dir: Path,
@@ -175,7 +192,7 @@ def build_executable(
     root = root.resolve()
     build_dir = build_dir.resolve()
     executable = build_dir / "sgemm_bench"
-    if executable.exists() and not force:
+    if executable.exists() and not force and not executable_is_stale(root, executable):
         return executable
     build_dir.mkdir(parents=True, exist_ok=True)
 

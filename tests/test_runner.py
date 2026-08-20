@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from sgemm_tools import runner
 from sgemm_tools.runner import (
     NativeRunOptions,
     ResultParseError,
@@ -15,6 +16,57 @@ from sgemm_tools.runner import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class BuildFreshnessTest(unittest.TestCase):
+    def test_runner_exposes_build_freshness_check(self):
+        self.assertTrue(hasattr(runner, "executable_is_stale"))
+
+    def test_newer_header_marks_executable_stale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            header = root / "include" / "sgemm" / "kernel.cuh"
+            executable = root / "build" / "sgemm_bench"
+            header.parent.mkdir(parents=True)
+            executable.parent.mkdir(parents=True)
+            header.touch()
+            executable.touch()
+            os.utime(executable, ns=(1_000_000_000, 1_000_000_000))
+            os.utime(header, ns=(2_000_000_000, 2_000_000_000))
+
+            self.assertTrue(runner.executable_is_stale(root, executable))
+
+    def test_older_source_keeps_executable_fresh(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src" / "benchmark.cu"
+            executable = root / "build" / "sgemm_bench"
+            source.parent.mkdir(parents=True)
+            executable.parent.mkdir(parents=True)
+            source.touch()
+            executable.touch()
+            os.utime(source, ns=(1_000_000_000, 1_000_000_000))
+            os.utime(executable, ns=(2_000_000_000, 2_000_000_000))
+
+            self.assertFalse(runner.executable_is_stale(root, executable))
+
+    def test_stale_executable_is_rebuilt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            build_dir = root / "build"
+            executable = build_dir / "sgemm_bench"
+            build_dir.mkdir()
+            executable.touch()
+
+            with (
+                mock.patch.object(runner, "executable_is_stale", return_value=True),
+                mock.patch.object(runner.shutil, "which", return_value="/usr/bin/nvcc"),
+                mock.patch.object(runner, "_run_build") as run_build,
+            ):
+                result = runner.build_executable(root, build_dir, prefer_cmake=False)
+
+            self.assertEqual(result, executable)
+            run_build.assert_called_once()
 
 
 class NativeArgumentsTest(unittest.TestCase):

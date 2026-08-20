@@ -17,6 +17,7 @@ from sgemm_tools.runner import (
     NativeRunOptions,
     ResultParseError,
     build_executable,
+    executable_is_stale,
     parse_json_lines,
     run_native,
 )
@@ -65,6 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.no_build:
             if not executable.exists():
                 raise BuildError(f"native executable does not exist: {executable}")
+            if executable_is_stale(ROOT, executable):
+                raise BuildError(
+                    "native executable is stale; remove --no-build or use --build"
+                )
         else:
             executable = build_executable(ROOT, build_dir, force=arguments.build)
 
