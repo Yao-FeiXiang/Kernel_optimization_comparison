@@ -1,5 +1,6 @@
 # CMake / Ninja / local builds
 /build/
+/.build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

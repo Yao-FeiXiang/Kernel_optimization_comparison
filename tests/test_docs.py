@@ -65,6 +65,7 @@ class DocumentationTest(unittest.TestCase):
             "__pycache__/",
             ".pytest_cache/",
             "*.tmp",
+            "/.build-*/",
         ):
             self.assertIn(pattern, self.gitignore)
         self.assertNotIn("RESULTS.md", self.gitignore)
@@ -76,6 +77,23 @@ class DocumentationTest(unittest.TestCase):
     def test_readme_explains_automatic_visual_ranking(self):
         for phrase in ("Performance vs cuBLAS", "GFLOP/s", "--update-results"):
             self.assertIn(phrase, self.readme)
+
+    def test_readme_documents_tutorial_comparable_a100_run(self):
+        for phrase in (
+            "--m 4096 --n 4096 --k 4096",
+            "--warmup 5 --repeat 50",
+            "SGEMM_CUDA_ARCH",
+            "register-tile-2d-fast",
+            "tail-safe",
+            "GPU0",
+        ):
+            self.assertIn(phrase, self.readme)
+
+    def test_results_keeps_history_and_adds_tutorial_comparable_group(self):
+        self.assertIn("M=1024, N=1024, K=1024", self.results)
+        self.assertIn("M=4096, N=4096, K=4096", self.results)
+        self.assertIn("Warmup: 5; timed samples: 50", self.results)
+        self.assertIn("warp-tiled-a100", self.results)
 
 
 if __name__ == "__main__":

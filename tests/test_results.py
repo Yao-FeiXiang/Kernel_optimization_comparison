@@ -218,6 +218,40 @@ class ResultsFileTest(unittest.TestCase):
         payload = line.removeprefix("<!-- record:").removesuffix(" -->")
         self.assertEqual(json.loads(payload)["method"], "naive")
 
+    def test_update_preserves_1024_group_when_adding_visual_4096_group(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "RESULTS.md"
+            small = BenchmarkRecord.from_mapping(
+                {**SAMPLE, "m": 1024, "n": 1024, "k": 1024}
+            )
+            large = BenchmarkRecord.from_mapping(
+                {
+                    **SAMPLE,
+                    "method_id": 10,
+                    "method": "warptiling",
+                    "m": 4096,
+                    "n": 4096,
+                    "k": 4096,
+                    "warmup": 5,
+                    "repeat": 50,
+                    "implementation_variant": "warp-tiled-a100",
+                    "configuration": (
+                        "BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128"
+                    ),
+                }
+            )
+
+            update_results_file(path, [small])
+            update_results_file(path, [large])
+            text = path.read_text(encoding="utf-8")
+
+            self.assertIn("M=1024, N=1024, K=1024", text)
+            self.assertIn("M=4096, N=4096, K=4096", text)
+            self.assertEqual(text.count("| Rank | ID | Method |"), 2)
+            self.assertIn("Warmup: 5; timed samples: 50", text)
+            self.assertIn("warp-tiled-a100", text)
+            self.assertIn(large.configuration, text)
+
 
 if __name__ == "__main__":
     unittest.main()

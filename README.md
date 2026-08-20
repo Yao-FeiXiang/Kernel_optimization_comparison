@@ -16,20 +16,20 @@ C = alpha * A * B + beta * C
 | 2 | `coalesced` | 重新映射线程，使同一 warp 连续访问全局内存 |
 | 3 | `shared` | 将 A/B 的 K 方向小块缓存到共享内存 |
 | 4 | `blocktiling-1d` | 每个线程计算同一列中的 8 个结果 |
-| 5 | `blocktiling-2d` | 每个线程在寄存器中累积一个 8×8 结果块 |
+| 5 | `blocktiling-2d` | 对齐尺寸使用教程的 128×128 block tile，每线程累积 8×8 结果块 |
 | 6 | `vectorized` | 转置共享内存中的 A，并用 `float4` 访问 GMEM |
-| 9 | `autotuned` | 在正式计时前选择当前设备/尺寸上最快的预编译 tile |
-| 10 | `warptiling` | 将 128×128 block tile 进一步分配到 64×64 warp tile |
+| 9 | `autotuned` | 在六个向量化候选中选择当前设备/尺寸上最快的预编译 tile |
+| 10 | `warptiling` | 按设备选择教程的 A100 或通用/A6000 warp tile 参数 |
 | 0 | `cublas` | 使用相同输入、C0 恢复和计时规则的 NVIDIA cuBLAS 基线 |
 
-所有自定义方法都支持非 tile 整数倍尺寸。Kernel 1–5 和 autotuned 候选直接进行边界保护；vectorized 与 warptiling 在不满足对齐/整除条件时报告 `scalar-fallback` 并调用 Kernel 5。这样批量正确性测试不会为了优化路径而牺牲尾块语义。
+所有自定义方法都支持非 tile 整数倍尺寸。Kernel 5 在满足 128×128×8 整除条件时报告 `register-tile-2d-fast`，否则走带边界保护的 `tail-safe` 路径；autotuned 与 warptiling 也会在不能安全使用 `float4`/整块计算时复用这条安全路径。这样既保留教程在 4096 方阵上的无分支快核，也不会为了性能牺牲任意尺寸语义。
 
 ## 环境要求
 
 - 支持 CUDA 的 NVIDIA GPU 和可工作的 NVIDIA 驱动。
 - CUDA Toolkit（项目当前用 CUDA 13.3 编译验证）。
 - Python 3.9 或更高版本，只使用标准库。
-- 可选：CMake 3.24+ 和 Ninja。没有 CMake 时，Python 入口会直接调用 `nvcc`。
+- 可选：CMake 3.24+ 和 Ninja。没有 CMake 时，Python 入口会直接调用 `nvcc`，默认目标架构为 A100 的 `sm_80`。
 - 可选：cuBLAS。CMake 和 Python 直接构建都会自动检测；缺少可链接库时方法 0 仍可列出，但状态为 `unavailable`。
 
 先确认工具和驱动：
@@ -68,7 +68,7 @@ python3 benchmark.py --all --m 1024 --n 1024 --k 1024
 python3 benchmark.py --tune --m 1024 --n 1024 --k 1024
 ```
 
-当前预编译候选为 `64×64×8`、`128×64×8`、`64×128×8`、`128×128×8` 和 `128×128×16`，线程寄存器 tile 均为 8×8。选择结果会写入 JSON/Markdown 的 configuration 字段，并按设备与 M/N/K 缓存到本次进程结束。
+当前预编译候选包含教程在 A100 上推荐的 `64×64×16 / TM=TN=4`，以及 `64×64×8`、`128×64×8`、`64×128×8`、`128×128×8` 和教程 A6000 配置 `128×128×16`（后五项 `TM=TN=8`）。方法 6 的 `128×128×8` 快核作为基线候选参与同一轮 CUDA event 计时。选择结果会写入 JSON/Markdown 的 configuration 字段，并按设备与 M/N/K 缓存到本次进程结束。
 
 运行小尺寸正确性检查，不进行性能计时：
 
@@ -88,6 +88,43 @@ python3 benchmark.py --kernel shared --m 127 --n 131 --k 35 --check
 python3 benchmark.py --list --build
 python3 benchmark.py --list --no-build --build-dir build
 ```
+
+直接使用 NVCC 构建时，默认生成 `sm_80` 代码以匹配本项目当前的 A100 服务器。如果换到其他 GPU，可以显式覆盖：
+
+```bash
+SGEMM_CUDA_ARCH=sm_86 python3 benchmark.py --list --build
+```
+
+## 与教程可比的 A100 实验
+
+教程首页的主表是在 RTX A6000、`M=N=K=4096` 上测得；旧的本地 1024 结果既不是同一矩阵规模，也不是同一 GPU，绝对 GFLOP/s 不能直接比较。更可靠的判断是：使用 4096 方阵、相同计时轮数和空闲 GPU，看优化阶段的趋势以及最终方法相对本机 cuBLAS 的比例。
+
+这台共享服务器推荐使用当前空闲的 GPU0。先看利用率和剩余显存；如果 GPU0 正在计算，等它空闲后再跑，显存中仅有常驻进程但计算利用率为 0% 通常不影响计时：
+
+```bash
+nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.free --format=csv
+```
+
+先用两个小尺寸验证对齐快路径和尾块安全路径，不要在 4096 上启用朴素 CPU 参考：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python3 benchmark.py --all --m 128 --n 128 --k 64 --check-only --build
+CUDA_VISIBLE_DEVICES=0 python3 benchmark.py --all --m 37 --n 41 --k 29 --check-only --no-build
+```
+
+然后运行与教程规模一致的批量性能实验，并自动更新可视化结果表：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 SGEMM_CUDA_ARCH=sm_80 python3 benchmark.py --all --m 4096 --n 4096 --k 4096 --warmup 5 --repeat 50 --build --update-results
+```
+
+只复测某一种方法时使用同一组实验参数；相同实验键下只更新该方法，不会删除其他方法：
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python3 benchmark.py --kernel 10 --m 4096 --n 4096 --k 4096 --warmup 5 --repeat 50 --no-build --update-results
+```
+
+A100/SM80 会为方法 10 选择教程参数 `BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128`；其他设备选择通用/A6000 参数。结果中的 `implementation_variant` 与 `configuration` 可以确认实际走的是快核还是 `tail-safe`，避免把回退路径误当成教程性能。
 
 ## 自动更新结果表
 
@@ -114,7 +151,7 @@ python3 benchmark.py --kernel 5 --results-file local-results.md --update-results
 - 性能统一按 `2*M*N*K + 2*M*N` 次浮点操作计算；后一个 `2*M*N` 对应 alpha/beta 缩放和最终累加。
 - 正确性使用 `abs_error <= atol + rtol*abs(reference)`；默认 `atol=1e-4*K`、`rtol=1e-4`，可以用 `--atol` 和 `--rtol` 覆盖。
 
-不同 GPU、CUDA 版本、功耗限制、温度和时钟状态下的结果不能直接视为同一基准。正式对比前请关闭其他 GPU 负载，并在同一机器上重复运行。
+不同 GPU、CUDA 版本、目标架构、功耗限制、温度和时钟状态下的结果不能直接视为同一基准。正式对比前请关闭其他 GPU 负载，并在同一机器上重复运行。共享服务器上尤其要留意一次实验中 median 与 min 差距异常大的情况，这通常意味着计时期间出现了竞争负载。
 
 ## CMake 构建
 
