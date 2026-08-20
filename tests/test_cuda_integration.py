@@ -89,9 +89,8 @@ class CudaIntegrationTest(unittest.TestCase):
         expected_variants = {
             "blocktiling-2d": "register-tile-2d-fast",
             "autotuned": "autotuned-vectorized",
-            "warptiling": "warp-tiled-a100",
         }
-        for method, expected_variant in expected_variants.items():
+        for method in ("blocktiling-2d", "autotuned", "warptiling"):
             with self.subTest(method=method):
                 arguments = native_arguments(
                     NativeRunOptions(
@@ -116,6 +115,12 @@ class CudaIntegrationTest(unittest.TestCase):
                     if line.startswith("{")
                 )
                 self.assertEqual(record["status"], "pass")
+                expected_variant = expected_variants.get(
+                    method,
+                    "warp-tiled-a100"
+                    if record["compute_capability"] == "8.0"
+                    else "warp-tiled-generic",
+                )
                 self.assertEqual(record["implementation_variant"], expected_variant)
 
     @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
@@ -234,13 +239,10 @@ class CudaIntegrationTest(unittest.TestCase):
     @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
     def test_warptiling_selects_device_profile_and_tail_safe_variant(self):
         cases = (
-            (128, 128, 64, "warp-tiled-a100"),
-            (131, 127, 35, "tail-safe"),
+            (128, 128, 64, True),
+            (131, 127, 35, False),
         )
-        expected_configuration = (
-            "BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128"
-        )
-        for m, n, k, expected_variant in cases:
+        for m, n, k, aligned in cases:
             with self.subTest(m=m, n=n, k=k):
                 arguments = native_arguments(
                     NativeRunOptions(
@@ -265,8 +267,18 @@ class CudaIntegrationTest(unittest.TestCase):
                     if line.startswith("{")
                 )
                 self.assertEqual(record["status"], "pass")
-                self.assertEqual(record["compute_capability"], "8.0")
+                if record["compute_capability"] == "8.0":
+                    expected_configuration = (
+                        "BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128"
+                    )
+                    expected_fast_variant = "warp-tiled-a100"
+                else:
+                    expected_configuration = (
+                        "BM128_BN128_BK16_WM64_WN64_WNITER4_TM8_TN4_THREADS128"
+                    )
+                    expected_fast_variant = "warp-tiled-generic"
                 self.assertEqual(record["configuration"], expected_configuration)
+                expected_variant = expected_fast_variant if aligned else "tail-safe"
                 self.assertEqual(record["implementation_variant"], expected_variant)
 
 
