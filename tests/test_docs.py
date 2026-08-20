@@ -73,6 +73,10 @@ class DocumentationTest(unittest.TestCase):
         for phrase in ("C = alpha * A * B + beta * C", "2*M*N*K + 2*M*N", "CUDA event"):
             self.assertIn(phrase, self.readme)
 
+    def test_readme_explains_automatic_visual_ranking(self):
+        for phrase in ("Performance vs cuBLAS", "GFLOP/s", "--update-results"):
+            self.assertIn(phrase, self.readme)
+
 
 if __name__ == "__main__":
     unittest.main()

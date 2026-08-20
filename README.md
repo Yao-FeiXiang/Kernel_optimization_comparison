@@ -103,7 +103,7 @@ python3 benchmark.py --all --m 1024 --n 1024 --k 1024 --warmup 5 --repeat 20 --u
 python3 benchmark.py --kernel 5 --results-file local-results.md --update-results
 ```
 
-更新键包含 GPU、compute capability、CUDA runtime、M/N/K、alpha/beta、warmup/repeat 和方法 ID。重复执行相同配置会更新原行；不同 GPU 或尺寸会保留为不同实验分组。表格同时展示运行变体、选中配置、相对 Naive 加速和 `% cuBLAS`；没有可用 cuBLAS 记录时对应列显示破折号。写入先生成临时文件再原子替换，失败时不会留下半张表。
+更新键包含 GPU、compute capability、CUDA runtime、M/N/K、alpha/beta、warmup/repeat 和方法 ID。重复执行相同配置会更新原行；不同 GPU 或尺寸会保留为不同实验分组。每次更新都会按 GFLOP/s 自动重排当前实验组，并在 `Performance vs cuBLAS` 列用最多 20 格的性能条展示相对 cuBLAS 性能；没有成功的 cuBLAS 记录时该列显示破折号。表格同时保留运行变体、选中配置、相对 Naive 加速和误差。写入先生成临时文件再原子替换，失败时不会留下半张表。
 
 ## 计时与性能口径
 
