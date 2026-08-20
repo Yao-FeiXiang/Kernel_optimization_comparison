@@ -80,14 +80,23 @@ class DocumentationTest(unittest.TestCase):
 
     def test_readme_documents_tutorial_comparable_a100_run(self):
         for phrase in (
-            "--m 4096 --n 4096 --k 4096",
-            "--warmup 5 --repeat 50",
+            "4096×4096×4096",
+            "warmup=5",
+            "repeat=50",
             "SGEMM_CUDA_ARCH",
             "register-tile-2d-fast",
             "tail-safe",
             "GPU0",
         ):
             self.assertIn(phrase, self.readme)
+
+    def test_readme_leads_with_simple_default_command(self):
+        command = "python3 benchmark.py --all --update-results"
+        self.assertIn(command, self.readme)
+        self.assertLess(self.readme.index(command), self.readme.index("手动覆盖"))
+
+    def test_readme_keeps_shell_examples_compact(self):
+        self.assertLessEqual(self.readme.count("```bash"), 6)
 
     def test_results_keeps_history_and_adds_tutorial_comparable_group(self):
         self.assertIn("M=1024, N=1024, K=1024", self.results)
