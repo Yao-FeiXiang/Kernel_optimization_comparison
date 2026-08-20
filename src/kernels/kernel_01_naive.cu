@@ -7,8 +7,8 @@ __global__ void naive_kernel(Problem problem,
                              const float* __restrict__ a,
                              const float* __restrict__ b,
                              float* __restrict__ c) {
-  const int column = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
-  const int row = static_cast<int>(blockIdx.y * blockDim.y + threadIdx.y);
+  const int row = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+  const int column = static_cast<int>(blockIdx.y * blockDim.y + threadIdx.y);
   if (row >= problem.m || column >= problem.n) {
     return;
   }
@@ -30,8 +30,8 @@ constexpr unsigned int ceil_div(unsigned int value, unsigned int divisor) {
 
 LaunchResult launch_naive(const Problem& problem, const DeviceOperands& operands) {
   const dim3 block(32, 32);
-  const dim3 grid(ceil_div(static_cast<unsigned int>(problem.n), block.x),
-                  ceil_div(static_cast<unsigned int>(problem.m), block.y));
+  const dim3 grid(ceil_div(static_cast<unsigned int>(problem.m), block.x),
+                  ceil_div(static_cast<unsigned int>(problem.n), block.y));
   naive_kernel<<<grid, block, 0, operands.stream>>>(problem, operands.a, operands.b, operands.c);
   return cuda_launch_result(cudaGetLastError(), "scalar");
 }

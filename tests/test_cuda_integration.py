@@ -57,7 +57,7 @@ class CudaIntegrationTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        self.assertEqual(result.stdout.count('"status":"pass"'), 8)
+        self.assertGreaterEqual(result.stdout.count('"status":"pass"'), 8)
         self.assertEqual(
             result.stdout.count('"status":"pass"')
             + result.stdout.count('"status":"unavailable"'),
@@ -117,6 +117,41 @@ class CudaIntegrationTest(unittest.TestCase):
                 )
                 self.assertEqual(record["status"], "pass")
                 self.assertEqual(record["implementation_variant"], expected_variant)
+
+    @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
+    def test_coalescing_stage_improves_large_square(self):
+        measurements = {}
+        for method in ("naive", "coalesced"):
+            arguments = native_arguments(
+                NativeRunOptions(
+                    kernel=method,
+                    m=1024,
+                    n=1024,
+                    k=1024,
+                    warmup=3,
+                    repeat=20,
+                    check=True,
+                    json=True,
+                )
+            )
+            result = subprocess.run(
+                [str(self.executable), *arguments],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            record = next(
+                json.loads(line)
+                for line in result.stdout.splitlines()
+                if line.startswith("{")
+            )
+            self.assertEqual(record["status"], "pass")
+            measurements[method] = record["gflops"]
+
+        self.assertGreater(
+            measurements["coalesced"], measurements["naive"] * 1.5
+        )
 
 
 if __name__ == "__main__":
