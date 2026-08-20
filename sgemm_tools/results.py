@@ -93,6 +93,21 @@ def _format_number(value: float, digits: int = 3) -> str:
     return f"{value:.{digits}f}"
 
 
+def _performance_order(record: BenchmarkRecord) -> tuple[Any, ...]:
+    if record.status == "pass":
+        return (0, -record.gflops, _method_order(record))
+    return (1, 0.0, _method_order(record))
+
+
+def _performance_bar(record: BenchmarkRecord, cublas: BenchmarkRecord | None) -> str:
+    if record.status != "pass" or cublas is None or cublas.gflops <= 0:
+        return "—"
+    percent = 100.0 * record.gflops / cublas.gflops
+    block_count = min(20, max(0, int(percent / 5.0 + 0.5)))
+    blocks = "█" * block_count
+    return f"{blocks} {percent:.1f}%".lstrip()
+
+
 def _render_group(records: Sequence[BenchmarkRecord]) -> str:
     first = records[0]
     naive = next(
@@ -103,6 +118,13 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
         (record for record in records if record.method_id == 0 and record.status == "pass"),
         None,
     )
+    display_records = sorted(records, key=_performance_order)
+    rank_by_key = {
+        record.row_key: rank
+        for rank, record in enumerate(
+            (item for item in display_records if item.status == "pass"), start=1
+        )
+    }
     lines = [
         (
             f"## {first.gpu} — M={first.m}, N={first.n}, K={first.k}"
@@ -122,32 +144,45 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
     lines.extend(
         [
             "",
-            "| ID | Method | Status | Variant / configuration | Median ms | Min ms | GFLOP/s | vs Naive | % cuBLAS | Max abs error | Max rel error |",
-            "|---:|:---|:---:|:---|---:|---:|---:|---:|---:|---:|---:|",
+            "| Rank | ID | Method | Status | Variant / configuration | Median ms | Min ms | GFLOP/s | Performance vs cuBLAS | vs Naive | Max abs error | Max rel error |",
+            "|---:|---:|:---|:---:|:---|---:|---:|---:|:---|---:|---:|---:|",
         ]
     )
-    for record in records:
+    for record in display_records:
+        rank = str(rank_by_key.get(record.row_key, "—"))
         details = " / ".join(
             value for value in (record.implementation_variant, record.configuration) if value
         ) or "—"
         if record.status != "pass":
-            values = [details, "—", "—", "—", "—", "—", "—", "—"]
             lines.append(
                 "| "
-                + " | ".join([str(record.method_id), record.method, record.status, *values])
+                + " | ".join(
+                    [
+                        rank,
+                        str(record.method_id),
+                        record.method,
+                        record.status,
+                        details,
+                        "—",
+                        "—",
+                        "—",
+                        "—",
+                        "—",
+                        "—",
+                        "—",
+                    ]
+                )
                 + " |"
             )
             continue
         speedup = "—"
         if naive is not None and naive.gflops > 0 and record.status == "pass":
             speedup = f"{record.gflops / naive.gflops:.3f}x"
-        percent_cublas = "—"
-        if cublas is not None and cublas.gflops > 0:
-            percent_cublas = f"{100.0 * record.gflops / cublas.gflops:.3f}%"
         lines.append(
             "| "
             + " | ".join(
                 [
+                    rank,
                     str(record.method_id),
                     record.method,
                     record.status,
@@ -155,8 +190,8 @@ def _render_group(records: Sequence[BenchmarkRecord]) -> str:
                     _format_number(record.latency_ms),
                     _format_number(record.min_latency_ms),
                     _format_number(record.gflops),
+                    _performance_bar(record, cublas),
                     speedup,
-                    percent_cublas,
                     f"{record.max_abs_error:.3e}",
                     f"{record.max_rel_error:.3e}",
                 ]

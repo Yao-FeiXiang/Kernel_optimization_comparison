@@ -89,7 +89,7 @@ class BenchmarkRecordTest(unittest.TestCase):
             f"# Results\n\n{BEGIN_MARKER}\n{rendered}\n{END_MARKER}\n"
         )
         self.assertEqual(parsed, [record])
-        self.assertIn("| 1 | naive | pass |", rendered)
+        self.assertIn("| 1 | 1 | naive | pass |", rendered)
 
     def test_render_calculates_speedup_against_naive_in_same_experiment(self):
         naive = BenchmarkRecord.from_mapping(SAMPLE)
@@ -97,8 +97,47 @@ class BenchmarkRecordTest(unittest.TestCase):
             {**SAMPLE, "method_id": 5, "method": "blocktiling-2d", "gflops": 4.42}
         )
         rendered = render_results([naive, tiled])
-        self.assertIn("| 5 | blocktiling-2d | pass |", rendered)
+        self.assertIn("| 1 | 5 | blocktiling-2d | pass |", rendered)
         self.assertIn("| 2.000x |", rendered)
+
+    def test_render_ranks_methods_and_draws_performance_bar(self):
+        naive = BenchmarkRecord.from_mapping(SAMPLE)
+        tiled = BenchmarkRecord.from_mapping(
+            {**SAMPLE, "method_id": 10, "method": "warptiling", "gflops": 5.0}
+        )
+        cublas = BenchmarkRecord.from_mapping(
+            {**SAMPLE, "method_id": 0, "method": "cublas", "gflops": 10.0}
+        )
+        rendered = render_results([naive, tiled, cublas])
+        rows = [line for line in rendered.splitlines() if line.startswith("| ")][1:]
+
+        self.assertIn("| Rank |", rendered)
+        self.assertTrue(rows[0].startswith("| 1 | 0 | cublas |"))
+        self.assertTrue(rows[1].startswith("| 2 | 10 | warptiling |"))
+        self.assertTrue(rows[2].startswith("| 3 | 1 | naive |"))
+        self.assertIn("████████████████████ 100.0%", rows[0])
+        self.assertIn("██████████ 50.0%", rows[1])
+
+    def test_render_caps_bar_length_but_preserves_percent_above_cublas(self):
+        faster = BenchmarkRecord.from_mapping(
+            {**SAMPLE, "method_id": 10, "method": "warptiling", "gflops": 15.0}
+        )
+        cublas = BenchmarkRecord.from_mapping(
+            {**SAMPLE, "method_id": 0, "method": "cublas", "gflops": 10.0}
+        )
+        rendered = render_results([faster, cublas])
+        self.assertIn("| 1 | 10 | warptiling |", rendered)
+        row = next(line for line in rendered.splitlines() if line.startswith("| 1 | 10 |"))
+
+        self.assertIn("████████████████████ 150.0%", row)
+        self.assertNotIn("█████████████████████", row)
+
+    def test_render_omits_performance_bar_without_cublas(self):
+        rendered = render_results([BenchmarkRecord.from_mapping(SAMPLE)])
+
+        self.assertIn("| 1 | 1 | naive | pass |", rendered)
+        row = next(line for line in rendered.splitlines() if line.startswith("| 1 | 1 |"))
+        self.assertIn("| — |", row)
 
     def test_render_shows_variant_configuration_and_percent_cublas(self):
         naive = BenchmarkRecord.from_mapping(SAMPLE)
@@ -118,8 +157,10 @@ class BenchmarkRecordTest(unittest.TestCase):
         rendered = render_results([cublas, naive, tiled])
         self.assertIn("Variant / configuration", rendered)
         self.assertIn("warp-tiled / BM128_BN128_BK16", rendered)
-        self.assertIn("| 88.400% |", rendered)
-        self.assertLess(rendered.index("| 10 | warptiling"), rendered.index("| 0 | cublas"))
+        self.assertIn("██████████████████ 88.4%", rendered)
+        self.assertIn("| 1 | 0 | cublas", rendered)
+        self.assertIn("| 2 | 10 | warptiling", rendered)
+        self.assertLess(rendered.index("| 1 | 0 | cublas"), rendered.index("| 2 | 10 | warptiling"))
 
     def test_unavailable_method_renders_without_numeric_metrics(self):
         unavailable = BenchmarkRecord.from_mapping(
@@ -135,7 +176,8 @@ class BenchmarkRecordTest(unittest.TestCase):
             }
         )
         rendered = render_results([BenchmarkRecord.from_mapping(SAMPLE), unavailable])
-        row = next(line for line in rendered.splitlines() if line.startswith("| 0 |"))
+        self.assertIn("| — | 0 | cublas |", rendered)
+        row = next(line for line in rendered.splitlines() if line.startswith("| — | 0 |"))
         self.assertIn("| unavailable | — | — | — | — | — |", row)
 
 
