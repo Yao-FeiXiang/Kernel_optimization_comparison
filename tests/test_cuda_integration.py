@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import tempfile
@@ -82,6 +83,40 @@ class CudaIntegrationTest(unittest.TestCase):
             variants.append(result.stdout)
         self.assertIn('"implementation_variant":"float4"', variants[0])
         self.assertIn('"implementation_variant":"scalar-fallback"', variants[1])
+
+    @unittest.skipUnless(gpu_available(), "CUDA driver/device unavailable")
+    def test_tutorial_aligned_paths_report_fast_variants(self):
+        expected_variants = {
+            "blocktiling-2d": "register-tile-2d-fast",
+            "autotuned": "autotuned-vectorized",
+            "warptiling": "warp-tiled-a100",
+        }
+        for method, expected_variant in expected_variants.items():
+            with self.subTest(method=method):
+                arguments = native_arguments(
+                    NativeRunOptions(
+                        kernel=method,
+                        m=128,
+                        n=128,
+                        k=64,
+                        check_only=True,
+                        json=True,
+                    )
+                )
+                result = subprocess.run(
+                    [str(self.executable), *arguments],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                record = next(
+                    json.loads(line)
+                    for line in result.stdout.splitlines()
+                    if line.startswith("{")
+                )
+                self.assertEqual(record["status"], "pass")
+                self.assertEqual(record["implementation_variant"], expected_variant)
 
 
 if __name__ == "__main__":

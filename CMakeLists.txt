@@ -15,6 +15,10 @@ add_library(sgemm_reference STATIC src/reference.cpp)
 target_include_directories(sgemm_reference PUBLIC include)
 
 enable_testing()
+add_executable(tutorial_config_test tests/tutorial_config_test.cpp)
+target_include_directories(tutorial_config_test PRIVATE include)
+add_test(NAME tutorial_config_test COMMAND tutorial_config_test)
+
 add_executable(reference_test tests/reference_test.cpp)
 target_link_libraries(reference_test PRIVATE sgemm_reference)
 add_test(NAME reference_test COMMAND reference_test)
