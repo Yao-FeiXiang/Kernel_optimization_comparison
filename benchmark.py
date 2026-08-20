@@ -11,6 +11,9 @@ from pathlib import Path
 from sgemm_tools.results import update_results_file
 from sgemm_tools.runner import (
     BuildError,
+    DEFAULT_MATRIX_SIZE,
+    DEFAULT_REPEAT,
+    DEFAULT_WARMUP,
     NativeRunOptions,
     ResultParseError,
     build_executable,
@@ -31,13 +34,13 @@ def create_parser() -> argparse.ArgumentParser:
     selectors.add_argument("--all", action="store_true", help="run all registered methods")
     selectors.add_argument("--tune", action="store_true", help="run the autotuned method")
     selectors.add_argument("--list", action="store_true", help="list methods without using a GPU")
-    parser.add_argument("--m", type=int, default=1024)
-    parser.add_argument("--n", type=int, default=1024)
-    parser.add_argument("--k", type=int, default=1024)
+    parser.add_argument("--m", type=int, default=DEFAULT_MATRIX_SIZE)
+    parser.add_argument("--n", type=int, default=DEFAULT_MATRIX_SIZE)
+    parser.add_argument("--k", type=int, default=DEFAULT_MATRIX_SIZE)
     parser.add_argument("--alpha", type=float, default=0.8)
     parser.add_argument("--beta", type=float, default=0.2)
-    parser.add_argument("--warmup", type=int, default=5)
-    parser.add_argument("--repeat", type=int, default=20)
+    parser.add_argument("--warmup", type=int, default=DEFAULT_WARMUP)
+    parser.add_argument("--repeat", type=int, default=DEFAULT_REPEAT)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--atol", type=float)
     parser.add_argument("--rtol", type=float)

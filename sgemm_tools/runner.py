@@ -28,6 +28,10 @@ PHASE_A_SOURCES = (
     "src/kernels/cublas_baseline.cu",
 )
 
+DEFAULT_MATRIX_SIZE = 4096
+DEFAULT_WARMUP = 5
+DEFAULT_REPEAT = 50
+
 
 class BuildError(RuntimeError):
     """Raised when the native benchmark cannot be built."""
@@ -42,13 +46,13 @@ class NativeRunOptions:
     kernel: Optional[str] = None
     all: bool = False
     tune: bool = False
-    m: int = 1024
-    n: int = 1024
-    k: int = 1024
+    m: int = DEFAULT_MATRIX_SIZE
+    n: int = DEFAULT_MATRIX_SIZE
+    k: int = DEFAULT_MATRIX_SIZE
     alpha: float = 0.8
     beta: float = 0.2
-    warmup: int = 5
-    repeat: int = 20
+    warmup: int = DEFAULT_WARMUP
+    repeat: int = DEFAULT_REPEAT
     seed: int = 42
     atol: Optional[float] = None
     rtol: Optional[float] = None
