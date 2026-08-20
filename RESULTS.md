@@ -3,34 +3,6 @@
 该文件由 `benchmark.py --update-results` 维护。不要手工编辑下面两个标记之间的内容；相同 GPU、CUDA、矩阵尺寸和测试参数下的同一方法会被替换，不会重复追加。
 
 <!-- SGEMM_RESULTS_BEGIN -->
-## NVIDIA A100-PCIE-40GB — M=1024, N=1024, K=1024
-
-- Compute capability: `8.0`; CUDA runtime: `13.3`; alpha=0.8; beta=0.2
-- Warmup: 5; timed samples: 20; updated: `2026-08-20T03:29:16Z`
-- Reproduce: `python3 benchmark.py --all --m 1024 --n 1024 --k 1024 --update-results`
-
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":179.649125863,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"scalar","k":1024,"latency_ms":11.965439796,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"naive","method_id":1,"min_latency_ms":7.764992237,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":3638.128073095,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"coalesced-scalar","k":1024,"latency_ms":0.590848029,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"coalesced","method_id":2,"min_latency_ms":0.589824021,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":5058.313402967,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"shared-memory","k":1024,"latency_ms":0.424959987,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"shared","method_id":3,"min_latency_ms":0.423936009,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":7891.729673775,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"register-tile-1d","k":1024,"latency_ms":0.272383988,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"blocktiling-1d","method_id":4,"min_latency_ms":0.27136001,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":7746.125542553,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"register-tile-2d-fast","k":1024,"latency_ms":0.277503997,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"blocktiling-2d","method_id":5,"min_latency_ms":0.276479989,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"fixed","cuda_runtime":"13.3","gflops":7981.749217943,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"float4","k":1024,"latency_ms":0.269311994,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"vectorized","method_id":6,"min_latency_ms":0.269311994,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"BM64_BN64_BK16_TM4_TN4","cuda_runtime":"13.3","gflops":10602.020508809,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"autotuned-vectorized","k":1024,"latency_ms":0.202751994,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"autotuned","method_id":9,"min_latency_ms":0.201728001,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128","cuda_runtime":"13.3","gflops":9048.275636614,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"warp-tiled-a100","k":1024,"latency_ms":0.237568006,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"warptiling","method_id":10,"min_latency_ms":0.235520005,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-<!-- record:{"alpha":0.800000012,"available":true,"beta":0.200000003,"compute_capability":"8.0","configuration":"cuBLAS","cuda_runtime":"13.3","gflops":16147.692263733,"gpu":"NVIDIA A100-PCIE-40GB","implementation_variant":"cublas-sgemm","k":1024,"latency_ms":0.13312,"m":1024,"max_abs_error":0.0,"max_rel_error":0.0,"method":"cublas","method_id":0,"min_latency_ms":0.132095993,"n":1024,"repeat":20,"schema_version":1,"status":"pass","timestamp_utc":"2026-08-20T03:29:16Z","warmup":5} -->
-
-| Rank | ID | Method | Status | Variant / configuration | Median ms | Min ms | GFLOP/s | Performance vs cuBLAS | vs Naive | Max abs error | Max rel error |
-|---:|---:|:---|:---:|:---|---:|---:|---:|:---|---:|---:|---:|
-| 1 | 0 | cublas | pass | cublas-sgemm / cuBLAS | 0.133 | 0.132 | 16147.692 | ████████████████████ 100.0% | 89.885x | 0.000e+00 | 0.000e+00 |
-| 2 | 9 | autotuned | pass | autotuned-vectorized / BM64_BN64_BK16_TM4_TN4 | 0.203 | 0.202 | 10602.021 | █████████████ 65.7% | 59.015x | 0.000e+00 | 0.000e+00 |
-| 3 | 10 | warptiling | pass | warp-tiled-a100 / BM64_BN128_BK16_WM32_WN64_WNITER1_TM4_TN4_THREADS128 | 0.238 | 0.236 | 9048.276 | ███████████ 56.0% | 50.366x | 0.000e+00 | 0.000e+00 |
-| 4 | 6 | vectorized | pass | float4 / fixed | 0.269 | 0.269 | 7981.749 | ██████████ 49.4% | 44.430x | 0.000e+00 | 0.000e+00 |
-| 5 | 4 | blocktiling-1d | pass | register-tile-1d / fixed | 0.272 | 0.271 | 7891.730 | ██████████ 48.9% | 43.929x | 0.000e+00 | 0.000e+00 |
-| 6 | 5 | blocktiling-2d | pass | register-tile-2d-fast / fixed | 0.278 | 0.276 | 7746.126 | ██████████ 48.0% | 43.118x | 0.000e+00 | 0.000e+00 |
-| 7 | 3 | shared | pass | shared-memory / fixed | 0.425 | 0.424 | 5058.313 | ██████ 31.3% | 28.157x | 0.000e+00 | 0.000e+00 |
-| 8 | 2 | coalesced | pass | coalesced-scalar / fixed | 0.591 | 0.590 | 3638.128 | █████ 22.5% | 20.251x | 0.000e+00 | 0.000e+00 |
-| 9 | 1 | naive | pass | scalar / fixed | 11.965 | 7.765 | 179.649 | 1.1% | 1.000x | 0.000e+00 | 0.000e+00 |
-
 ## NVIDIA A100-PCIE-40GB — M=4096, N=4096, K=4096
 
 - Compute capability: `8.0`; CUDA runtime: `13.3`; alpha=0.8; beta=0.2

@@ -98,8 +98,8 @@ class DocumentationTest(unittest.TestCase):
     def test_readme_keeps_shell_examples_compact(self):
         self.assertLessEqual(self.readme.count("```bash"), 6)
 
-    def test_results_keeps_history_and_adds_tutorial_comparable_group(self):
-        self.assertIn("M=1024, N=1024, K=1024", self.results)
+    def test_results_only_keeps_tutorial_comparable_group(self):
+        self.assertNotIn("M=1024, N=1024, K=1024", self.results)
         self.assertIn("M=4096, N=4096, K=4096", self.results)
         self.assertIn("Warmup: 5; timed samples: 50", self.results)
         self.assertIn("warp-tiled-a100", self.results)
