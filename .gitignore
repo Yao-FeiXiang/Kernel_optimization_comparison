@@ -34,3 +34,10 @@ htmlcov/
 
 # Isolated feature worktrees
 /.worktrees/
+
+# Local AI-assistant state and generated planning records
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+/docs/superpowers/
